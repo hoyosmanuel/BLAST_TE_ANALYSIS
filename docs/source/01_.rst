@@ -1,0 +1,97 @@
+I. GENOMAS DE TRABAJO
+========================
+
+1) Genomas
+-------------
+.. code-block:: bash
+
+  mkdir -p /lustre/scratch/mhoyosro/project3/GENOMES
+  cd /lustre/scratch/daray/bat1kdatafreeze/final_assemblies
+
+  cp  mHipLar1.2.pri.fa \
+      mRouAeg1.4.pri.fa \
+      mRhiFer1.5.pri.fa \
+      mPipKuh1.2.pri.fa \
+      mPhyDis1.3.pri.fa \
+      mMolMol1.2.pri.fa \
+      mMyoMyo1.6.pri.fa / lustre/scratch/mhoyosro/project3/GENOMES
+
+
+2) Get the RNAseq data
+-----------------------
+.. code-block:: bash
+
+  nano getdata.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=descarga
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=8
+  #SBATCH --ntasks=8
+  
+  cd /lustre/scratch/mhoyosro/project3/
+  export PATH=/lustre/work/mhoyosro/software/sratoolkit/bin:${PATH}
+  
+  prefetch --max-size 99999999999 SRR18652231
+  prefetch --max-size 99999999999 SRR18652230
+  prefetch --max-size 99999999999 SRR18652219
+  prefetch --max-size 99999999999 SRR18652218
+  prefetch --max-size 99999999999 SRR18652217
+  prefetch --max-size 99999999999 SRR18652128
+  prefetch --max-size 99999999999 SRR18652132
+  prefetch --max-size 99999999999 SRR18652131
+  prefetch --max-size 99999999999 SRR18652130
+  prefetch --max-size 99999999999 SRR18652129
+  prefetch --max-size 99999999999 SRR18652220
+  prefetch --max-size 99999999999 SRR18652180
+  prefetch --max-size 99999999999 SRR18652229
+  prefetch --max-size 99999999999 SRR18652228
+  prefetch --max-size 99999999999 SRR17418361
+  
+
+These data include the following information:
+
+| SRR18652231 *Molossus molossus* **brain**
+| SRR18652230 *Molossus molossus* **testes**
+| SRR18652219 *Myotis myotis* **brain**
+| SRR18652218 *Myotis myotis* **kidney**
+| SRR18652217 *Myotis myotis* **liver**
+| SRR18652128 *Phyllostomus discolor* **brain**
+| SRR18652132 *Phyllostomus discolor* **cerebellum**
+| SRR18652131 *Phyllostomus discolor* **hypothalamus**
+| SRR18652130 *Phyllostomus discolor* **striatum**
+| SRR18652129 *Phyllostomus discolor* **testes**
+| SRR18652220 *Pipistrellus kuhlii* **testes**
+| SRR18652180 *Rhinolophus ferrumequinum* **brain**
+| SRR18652229 *Rousettus aegyptiacus* **brain**
+| SRR18652228 *Rousettus aegyptiacus* **testes**
+| SRR17418361 *Hipposideros larvatus* **brain, heart, spleen, lung, muscle** and **liver** from an adult female
+
+.. Then unpack the data inside of this directory:
+.. /lustre/scratch/mhoyosro/project3/RNAs
+
+.. code-block:: bash
+
+  nano unpack.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=unpack
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=8
+  #SBATCH --ntasks=8
+  
+  cd /lustre/scratch/mhoyosro/project3/RNAs
+  
+  export PATH=/lustre/work/mhoyosro/software/sratoolkit/bin:${PATH}
+  
+  fastq-dump *.sra
+
+
