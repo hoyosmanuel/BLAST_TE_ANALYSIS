@@ -468,7 +468,8 @@ OJO!!! Hay una forma más rápida de hacer todo esto!!
   sed 's/#/\t/g' rAeg_vs_RepeatPeps.working3.tsv> rAeg_vs_RepeatPeps.working4.tsv
 
 
-8) Ahora voy a ponerle headers a las tablas : 
+8) Ahora voy a ponerle headers a las tablas
+-------------------------------------------
 
 .. code-block:: bash
 
@@ -494,6 +495,7 @@ OJO!!! Hay una forma más rápida de hacer todo esto!!
   echo -e "qseqid_EXON_NAME\tqseqid_start\tqseqid_end\tqseqid_sense\tTE_FAMILY\tTE_TYPE\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tqcovs\tqcovhsp" \ | cat - rAeg_vs_RepeatPeps.working4.tsv > rAeg_vs_RepeatPeps.FINAL.tsv
 
 9) Ahora voy a ordenar por qseqid_start, qseqid_end y luego por qseqid_EXON_NAME
+--------------------------------------------------------------------------------
 
 .. code-block:: bash
 
