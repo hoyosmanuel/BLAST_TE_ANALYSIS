@@ -468,4 +468,94 @@ OJO!!! Hay una forma más rápida de hacer todo esto!!
   sed 's/#/\t/g' rAeg_vs_RepeatPeps.working3.tsv> rAeg_vs_RepeatPeps.working4.tsv
 
 
+8) Ahora voy a ponerle headers a las tablas : 
 
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/hipposideros
+  echo -e "qseqid_EXON_NAME\tqseqid_start\tqseqid_end\tqseqid_sense\tTE_FAMILY\tTE_TYPE\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tqcovs\tqcovhsp" \ | cat - hLar_vs_RepeatPeps.working4.tsv > hLar_vs_RepeatPeps.FINAL.tsv
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/molossus
+  echo -e "qseqid_EXON_NAME\tqseqid_start\tqseqid_end\tqseqid_sense\tTE_FAMILY\tTE_TYPE\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tqcovs\tqcovhsp" \ | cat - mMol_vs_RepeatPeps.working4.tsv > mMol_vs_RepeatPeps.FINAL.tsv
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/myotis
+  echo -e "qseqid_EXON_NAME\tqseqid_start\tqseqid_end\tqseqid_sense\tTE_FAMILY\tTE_TYPE\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tqcovs\tqcovhsp" \ | cat - mMyo_vs_RepeatPeps.working4.tsv > mMyo_vs_RepeatPeps.FINAL.tsv
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/phyllostomus
+  echo -e "qseqid_EXON_NAME\tqseqid_start\tqseqid_end\tqseqid_sense\tTE_FAMILY\tTE_TYPE\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\\tqlen\tslen\tqcovs\tqcovhsp" \ | cat - pDis_vs_RepeatPeps.working4.tsv > pDis_vs_RepeatPeps.FINAL.tsv
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/pipistrellus
+  echo -e "qseqid_EXON_NAME\tqseqid_start\tqseqid_end\tqseqid_sense\tTE_FAMILY\tTE_TYPE\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tqcovs\tqcovhsp" \ | cat - pKuh_vs_RepeatPeps.working4.tsv > pKuh_vs_RepeatPeps.FINAL.tsv
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/rhinolophus
+  echo -e "qseqid_EXON_NAME\tqseqid_start\tqseqid_end\tqseqid_sense\tTE_FAMILY\tTE_TYPE\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tqcovs\tqcovhsp" \ | cat - rFer_vs_RepeatPeps.working4.tsv > rFer_vs_RepeatPeps.FINAL.tsv
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/rousettus
+  echo -e "qseqid_EXON_NAME\tqseqid_start\tqseqid_end\tqseqid_sense\tTE_FAMILY\tTE_TYPE\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tqcovs\tqcovhsp" \ | cat - rAeg_vs_RepeatPeps.working4.tsv > rAeg_vs_RepeatPeps.FINAL.tsv
+
+9) Ahora voy a ordenar por qseqid_start, qseqid_end y luego por qseqid_EXON_NAME
+
+.. code-block:: bash
+
+  . $HOME/conda/etc/profile.d/conda.sh
+  conda activate biopython
+  ipython
+  import pandas as pd
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/hipposideros
+  df = pd.read_csv("hLar_vs_RepeatPeps.FINAL.tsv", sep="\t")
+  # Ordenar por qseqid_start, qseqid_end, y luego qseqid_EXON_NAME2
+  df_sorted = df.sort_values(by=["qseqid_start", "qseqid_end", "qseqid_EXON_NAME", "pident", "bitscore"],
+  ascending=[True, True, True, False, True]  # pident de mayor a menor)
+  # Guardar el archivo ordenado
+  df_sorted.to_csv("hLar_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/molossus
+  df = pd.read_csv("mMol_vs_RepeatPeps.FINAL.tsv", sep="\t")
+  # Ordenar por qseqid_start, qseqid_end, y luego qseqid_EXON_NAME
+  df_sorted = df.sort_values(by=["qseqid_start", "qseqid_end", "qseqid_EXON_NAME", "pident", "bitscore"],
+  ascending=[True, True, True, False, True]  # pident de mayor a menor)
+  # Guardar el archivo ordenado
+  df_sorted.to_csv("mMol_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/myotis
+  df = pd.read_csv("mMyo_vs_RepeatPeps.FINAL.tsv", sep="\t")
+  # Ordenar por qseqid_start, qseqid_end, y luego qseqid_EXON_NAME
+  df_sorted = df.sort_values(by=["qseqid_start", "qseqid_end", "qseqid_EXON_NAME", "pident", "bitscore"],
+  ascending=[True, True, True, False, True]  # pident de mayor a menor)
+  # Guardar el archivo ordenado
+  df_sorted.to_csv("mMyo_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/phyllostomus
+  df = pd.read_csv("pDis_vs_RepeatPeps.FINAL.tsv", sep="\t")
+  # Ordenar por qseqid_start, qseqid_end, y luego qseqid_EXON_NAME
+  df_sorted = df.sort_values(by=["qseqid_start", "qseqid_end", "qseqid_EXON_NAME", "pident", "bitscore"],
+  ascending=[True, True, True, False, True]  # pident de mayor a menor)
+  # Guardar el archivo ordenado
+  df_sorted.to_csv("pDis_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/pipistrellus
+  df = pd.read_csv("pKuh_vs_RepeatPeps.FINAL.tsv", sep="\t")
+  # Ordenar por qseqid_start, qseqid_end, y luego qseqid_EXON_NAME
+  df_sorted = df.sort_values(by=["qseqid_start", "qseqid_end", "qseqid_EXON_NAME", "pident", "bitscore"],
+  ascending=[True, True, True, False, True]  # pident de mayor a menor)
+  # Guardar el archivo ordenado
+  df_sorted.to_csv("pKuh_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/rhinolophus
+  df = pd.read_csv("rFer_vs_RepeatPeps.FINAL.tsv", sep="\t")
+  # Ordenar por qseqid_start, qseqid_end, y luego qseqid_EXON_NAME
+  df_sorted = df.sort_values(by=["qseqid_start", "qseqid_end", "qseqid_EXON_NAME", "pident", "bitscore"],
+  ascending=[True, True, True, False, True]  # pident de mayor a menor)
+  # Guardar el archivo ordenado
+  df_sorted.to_csv("rFer_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/rousettus
+  df = pd.read_csv("rAeg_vs_RepeatPeps.FINAL.tsv", sep="\t")
+  # Ordenar por qseqid_start, qseqid_end, y luego qseqid_EXON_NAME
+  df_sorted = df.sort_values(by=["qseqid_start", "qseqid_end", "qseqid_EXON_NAME", "pident", "bitscore"],
+  ascending=[True, True, True, False, True]  # pident de mayor a menor)
+  # Guardar el archivo ordenado
+  df_sorted.to_csv("rAeg_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t", index=False)
+  
+  
