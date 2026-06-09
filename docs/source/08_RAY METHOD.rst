@@ -665,8 +665,8 @@ Ojo!! Todo ese chorro se puede cambiar por este:
   df_unique.to_csv(""rAeg_vs_RepeatPeps.FINAL_FILTRO_1.tsv"", sep="\t", index=False)
 
   
-Ojo!! Todo ese chorro se puede cambiar por este:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Ojo!! Todo ese chorro se puede cambiar por este código
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -702,3 +702,117 @@ Ojo!! Todo ese chorro se puede cambiar por este:
       df_unique.to_csv(outfile_path, sep="\t", index=False)
       
       print(f"Archivo filtrado guardado en: {outfile_path}")
+
+
+
+11) Ahora necesito arreglar el qseqid_EXON_NAME de cada archivo
+----------------------------------------------------------------
+
+.. code-block:: bash
+
+  import pandas as pd
+  
+  # Cargar archivo
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/hipposideros
+  df = pd.read_csv("hLar_vs_RepeatPeps.FINAL_FILTRO_1.tsv", sep="\t")
+  # Separar la columna 'qseqid_EXON_NAME' en 3 partes usando '__' como separador
+  # Limita a 3 partes para que todo lo que quede vaya a la tercera columna
+  df[['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']] = df['qseqid_EXON_NAME'].str.split('__', n=2, expand=True)
+  # Eliminar la columna original
+  df = df.drop(columns=['qseqid_EXON_NAME'])
+  # Reordenar columnas para poner las nuevas al inicio
+  cols = ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3'] + [c for c in df.columns if c not in ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']]
+  df = df[cols]
+  # Guardar resultado
+  df.to_csv("hLar_vs_RepeatPeps.FINAL_FILTRO_2.tsv", sep="\t", index=False, float_format="%.3f")
+  
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/molossus
+  df = pd.read_csv("mMol_vs_RepeatPeps.FINAL_FILTRO_1.tsv", sep="\t")
+  df[['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']] = df['qseqid_EXON_NAME'].str.split('__', n=2, expand=True)
+  df = df.drop(columns=['qseqid_EXON_NAME'])
+  cols = ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3'] + [c for c in df.columns if c not in ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']]
+  df = df[cols]
+  df.to_csv("mMol_vs_RepeatPeps.FINAL_FILTRO_2.tsv", sep="\t", index=False, float_format="%.3f")
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/myotis
+  df = pd.read_csv("mMyo_vs_RepeatPeps.FINAL_FILTRO_1.tsv", sep="\t")
+  df[['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']] = df['qseqid_EXON_NAME'].str.split('__', n=2, expand=True)
+  df = df.drop(columns=['qseqid_EXON_NAME'])
+  cols = ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3'] + [c for c in df.columns if c not in ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']]
+  df = df[cols]
+  df.to_csv("mMyo_vs_RepeatPeps.FINAL_FILTRO_2.tsv", sep="\t", index=False, float_format="%.3f")
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/phyllostomus
+  df = pd.read_csv("pDis_vs_RepeatPeps.FINAL_FILTRO_1.tsv", sep="\t")
+  df[['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']] = df['qseqid_EXON_NAME'].str.split('__', n=2, expand=True)
+  df = df.drop(columns=['qseqid_EXON_NAME'])
+  cols = ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3'] + [c for c in df.columns if c not in ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']]
+  df = df[cols]
+  df.to_csv("pDis_vs_RepeatPeps.FINAL_FILTRO_2.tsv", sep="\t", index=False, float_format="%.3f")
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/pipistrellus
+  df = pd.read_csv("pKuh_vs_RepeatPeps.FINAL_FILTRO_1.tsv", sep="\t")
+  df[['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']] = df['qseqid_EXON_NAME'].str.split('__', n=2, expand=True)
+  df = df.drop(columns=['qseqid_EXON_NAME'])
+  cols = ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3'] + [c for c in df.columns if c not in ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']]
+  df = df[cols]
+  df.to_csv("pKuh_vs_RepeatPeps.FINAL_FILTRO_2.tsv", sep="\t", index=False, float_format="%.3f")
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/rhinolophus
+  df = pd.read_csv("rFer_vs_RepeatPeps.FINAL_FILTRO_1.tsv", sep="\t")
+  df[['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']] = df['qseqid_EXON_NAME'].str.split('__', n=2, expand=True)
+  df = df.drop(columns=['qseqid_EXON_NAME'])
+  cols = ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3'] + [c for c in df.columns if c not in ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']]
+  df = df[cols]
+  df.to_csv("rFer_vs_RepeatPeps.FINAL_FILTRO_2.tsv", sep="\t", index=False, float_format="%.3f")
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/rousettus
+  df = pd.read_csv("rAeg_vs_RepeatPeps.FINAL_FILTRO_1.tsv", sep="\t")
+  df[['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']] = df['qseqid_EXON_NAME'].str.split('__', n=2, expand=True)
+  df = df.drop(columns=['qseqid_EXON_NAME'])
+  cols = ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3'] + [c for c in df.columns if c not in ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']]
+  df = df[cols]
+  df.to_csv("rAeg_vs_RepeatPeps.FINAL_FILTRO_2.tsv", sep="\t", index=False, float_format="%.3f")
+
+
+OJO!! Todo ese chorro puede ser reemplazado por este código:
+------------------------------------------------------------
+
+.. code-block:: bash
+
+  import pandas as pd
+  from pathlib import Path
+  
+  # Lista de carpetas y archivos
+  carpetas_archivos = {
+      "hipposideros": "hLar_vs_RepeatPeps.FINAL_FILTRO_1.tsv",
+      "molossus": "mMol_vs_RepeatPeps.FINAL_FILTRO_1.tsv",
+      "myotis": "mMyo_vs_RepeatPeps.FINAL_FILTRO_1.tsv",
+      "phyllostomus": "pDis_vs_RepeatPeps.FINAL_FILTRO_1.tsv",
+      "pipistrellus": "pKuh_vs_RepeatPeps.FINAL_FILTRO_1.tsv",
+      "rhinolophus": "rFer_vs_RepeatPeps.FINAL_FILTRO_1.tsv",
+      "rousettus": "rAeg_vs_RepeatPeps.FINAL_FILTRO_1.tsv"
+  }
+  
+  base_dir = Path("/lustre/scratch/mhoyosro/project3/BLAST2")
+  
+  for carpeta, archivo in carpetas_archivos.items():
+      ruta = base_dir / carpeta / archivo
+      df = pd.read_csv(ruta, sep="\t")
+  
+      # Separar qseqid_EXON_NAME en 3 columnas
+      df[['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']] = df['qseqid_EXON_NAME'].str.split('__', n=2, expand=True)
+      df = df.drop(columns=['qseqid_EXON_NAME'])
+  
+      # Reordenar columnas
+      cols = ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3'] + \
+             [c for c in df.columns if c not in ['qseqid_EXON_NAME_1','qseqid_EXON_NAME_2','qseqid_EXON_NAME_3']]
+      df = df[cols]
+  
+      # Guardar nuevo archivo con sufijo _2
+      nuevo_archivo = archivo.replace("FINAL_FILTRO_1", "FINAL_FILTRO_2")
+      df.to_csv(base_dir / carpeta / nuevo_archivo, sep="\t", index=False, float_format="%.3f")
+  
+      print(f"Procesado: {carpeta}/{archivo}")
+    
