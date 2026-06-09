@@ -26,6 +26,9 @@ Y Según David debería evitar cosas que se vean asi:
 Entonces lo que necesito es eliminar las entradas que tengan un solo exon!
 lo que hay que hacer es ir a la columna 2 y sacar esta lista:
 
+.. csv-table::
+   :file: _static/tabla.csv
+   :header-rows: 1
 
 
 
