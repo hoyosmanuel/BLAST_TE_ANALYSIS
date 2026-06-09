@@ -815,4 +815,11 @@ OJO!! Todo ese chorro puede ser reemplazado por este código:
       df.to_csv(base_dir / carpeta / nuevo_archivo, sep="\t", index=False, float_format="%.3f")
   
       print(f"Procesado: {carpeta}/{archivo}")
-    
+
+
+Finalmente voy a juntar todo en un excel que se llame FILTER2.xlsx y voy a arreglar los ultimos detalles manualmente
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+qcovs que es el  porcentaje de cobertura del query en BLAST. = porcentaje de la secuencia query completa que está cubierta por el alineamiento (o por el conjunto de HSPs para ese hit).
+qlen = longitud total de la secuencia query (los trasncriptomas)
+
