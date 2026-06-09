@@ -561,3 +561,144 @@ OJO!!! Hay una forma más rápida de hacer todo esto!!
   df_sorted.to_csv("rAeg_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t", index=False)
   
   
+Ojo!! Todo ese chorro se puede cambiar por este:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+  import pandas as pd
+  from pathlib import Path
+  
+  folders_files = {
+      "hipposideros": "hLar_vs_RepeatPeps.FINAL.tsv",
+      "molossus": "mMol_vs_RepeatPeps.FINAL.tsv",
+      "myotis": "mMyo_vs_RepeatPeps.FINAL.tsv",
+      "phyllostomus": "pDis_vs_RepeatPeps.FINAL.tsv",
+      "pipistrellus": "pKuh_vs_RepeatPeps.FINAL.tsv",
+      "rhinolophus": "rFer_vs_RepeatPeps.FINAL.tsv",
+      "rousettus": "rAeg_vs_RepeatPeps.FINAL.tsv"
+  }
+  
+  # Ruta base
+  base_path = Path("/lustre/scratch/mhoyosro/project3/BLAST2")
+  
+  # Iterar por cada carpeta y archivo
+  for folder, infile in folders_files.items():
+      folder_path = base_path / folder
+      infile_path = folder_path / infile
+      outfile_path = folder_path / infile.replace(".FINAL.tsv", ".FINAL_ordenado.tsv")
+      
+      # Leer archivo
+      df = pd.read_csv(infile_path, sep="\t")
+      
+      # Ordenar
+      df_sorted = df.sort_values(
+          by=["qseqid_start", "qseqid_end", "qseqid_EXON_NAME", "pident", "bitscore"],
+          ascending=[True, True, True, False, True]  # pident de mayor a menor
+      )
+      
+      # Guardar archivo ordenado
+      df_sorted.to_csv(outfile_path, sep="\t", index=False)
+      
+      print(f"Archivo ordenado guardado en: {outfile_path}")
+
+10) “drop duplicates keeping first”.
+-------------------------------------
+
+.. code-block:: bash
+
+  import pandas as pd
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/hipposideros
+  # Leer archivo
+  df = pd.read_csv("hLar_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t")
+  # Eliminar duplicados basándose en estas columnas, manteniendo la primera fila de cada grupo
+  df_unique = df.drop_duplicates(subset=["qseqid_EXON_NAME", "qseqid_start", "qseqid_end"], keep="first")
+  # Guardar archivo resultante
+  df_unique.to_csv(""hLar_vs_RepeatPeps.FINAL_FILTRO_1.tsv"", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/molossus
+  # Leer archivo
+  df = pd.read_csv("mMol_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t")
+  # Eliminar duplicados basándose en estas columnas, manteniendo la primera fila de cada grupo
+  df_unique = df.drop_duplicates(subset=["qseqid_EXON_NAME", "qseqid_start", "qseqid_end"], keep="first")
+  # Guardar archivo resultante
+  df_unique.to_csv(""mMol_vs_RepeatPeps.FINAL_FILTRO_1.tsv"", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/myotis
+  # Leer archivo
+  df = pd.read_csv("mMyo_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t")
+  # Eliminar duplicados basándose en estas columnas, manteniendo la primera fila de cada grupo
+  df_unique = df.drop_duplicates(subset=["qseqid_EXON_NAME", "qseqid_start", "qseqid_end"], keep="first")
+  # Guardar archivo resultante
+  df_unique.to_csv(""mMyo_vs_RepeatPeps.FINAL_FILTRO_1.tsv"", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/phyllostomus
+  # Leer archivo
+  df = pd.read_csv("pDis_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t")
+  # Eliminar duplicados basándose en estas columnas, manteniendo la primera fila de cada grupo
+  df_unique = df.drop_duplicates(subset=["qseqid_EXON_NAME", "qseqid_start", "qseqid_end"], keep="first")
+  # Guardar archivo resultante
+  df_unique.to_csv(""pDis_vs_RepeatPeps.FINAL_FILTRO_1.tsv"", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/pipistrellus
+  # Leer archivo
+  df = pd.read_csv("pKuh_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t")
+  # Eliminar duplicados basándose en estas columnas, manteniendo la primera fila de cada grupo
+  df_unique = df.drop_duplicates(subset=["qseqid_EXON_NAME", "qseqid_start", "qseqid_end"], keep="first")
+  # Guardar archivo resultante
+  df_unique.to_csv(""pKuh_vs_RepeatPeps.FINAL_FILTRO_1.tsv"", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/rhinolophus
+  # Leer archivo
+  df = pd.read_csv("rFer_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t")
+  # Eliminar duplicados basándose en estas columnas, manteniendo la primera fila de cada grupo
+  df_unique = df.drop_duplicates(subset=["qseqid_EXON_NAME", "qseqid_start", "qseqid_end"], keep="first")
+  # Guardar archivo resultante
+  df_unique.to_csv(""rFer_vs_RepeatPeps.FINAL_FILTRO_1.tsv"", sep="\t", index=False)
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2/rousettus
+  # Leer archivo
+  df = pd.read_csv("rAeg_vs_RepeatPeps.FINAL_ordenado.tsv", sep="\t")
+  # Eliminar duplicados basándose en estas columnas, manteniendo la primera fila de cada grupo
+  df_unique = df.drop_duplicates(subset=["qseqid_EXON_NAME", "qseqid_start", "qseqid_end"], keep="first")
+  # Guardar archivo resultante
+  df_unique.to_csv(""rAeg_vs_RepeatPeps.FINAL_FILTRO_1.tsv"", sep="\t", index=False)
+
+  
+Ojo!! Todo ese chorro se puede cambiar por este:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+  import pandas as pd
+  from pathlib import Path
+  
+  # Diccionario de carpetas y archivos ordenados
+  folders_files = {
+      "hipposideros": "hLar_vs_RepeatPeps.FINAL_ordenado.tsv",
+      "molossus": "mMol_vs_RepeatPeps.FINAL_ordenado.tsv",
+      "myotis": "mMyo_vs_RepeatPeps.FINAL_ordenado.tsv",
+      "phyllostomus": "pDis_vs_RepeatPeps.FINAL_ordenado.tsv",
+      "pipistrellus": "pKuh_vs_RepeatPeps.FINAL_ordenado.tsv",
+      "rhinolophus": "rFer_vs_RepeatPeps.FINAL_ordenado.tsv",
+      "rousettus": "rAeg_vs_RepeatPeps.FINAL_ordenado.tsv"
+  }
+  
+  # Ruta base
+  base_path = Path("/lustre/scratch/mhoyosro/project3/BLAST2")
+  
+  # Iterar por cada carpeta y archivo
+  for folder, infile in folders_files.items():
+      infile_path = base_path / folder / infile
+      outfile_path = infile_path.with_name(infile.replace(".FINAL_ordenado.tsv", ".FINAL_FILTRO_1.tsv"))
+      
+      # Leer archivo
+      df = pd.read_csv(infile_path, sep="\t")
+      
+      # Eliminar duplicados basándose en columnas específicas
+      df_unique = df.drop_duplicates(subset=["qseqid_EXON_NAME", "qseqid_start", "qseqid_end"], keep="first")
+      
+      # Guardar archivo resultante
+      df_unique.to_csv(outfile_path, sep="\t", index=False)
+      
+      print(f"Archivo filtrado guardado en: {outfile_path}")
