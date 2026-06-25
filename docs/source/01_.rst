@@ -5,16 +5,145 @@ I. GENOMAS DE TRABAJO
 -------------
 .. code-block:: bash
 
-  mkdir -p /lustre/scratch/mhoyosro/project3/GENOMES
+  mkdir -p /lustre/scratch/mhoyosro/project3/REF_GENOMES
   cd /lustre/scratch/daray/bat1kdatafreeze/final_assemblies
 
-  cp  mHipLar1.2.pri.fa \
-      mRouAeg1.4.pri.fa \
-      mRhiFer1.5.pri.fa \
-      mPipKuh1.2.pri.fa \
-      mPhyDis1.3.pri.fa \
-      mMolMol1.2.pri.fa \
-      mMyoMyo1.6.pri.fa / lustre/scratch/mhoyosro/project3/GENOMES
+  cp  mHipLar1.2.pri.fa.gz \
+      mRouAeg1.4.pri.fa.gz \
+      mRhiFer1.5.pri.fa.gz \
+      mPipKuh1.2.pri.fa.gz \
+      mPhyDis1.3.pri.fa.gz \
+      mMolMol1.2.pri.fa.gz \
+      mMyoMyo1.6.pri.fa.gz \
+      mEonSpe1.2.hap1.fa.gz \
+      mEonSpe1.2.hap2.fa.gz \
+      mVesMur1.1.pri.fa.gz \
+      mRhiSin3.1.pri.fa.gz \
+      mRhiHip1.1.hap1.fa.gz \
+      mRhiHip1.1.hap2.fa.gz \
+      mPleAur1.1.pri.fa.gz \
+      mMyoMys1.1.hap1.fa.gz \
+      mMyoMys1.1.hap2.fa.gz \
+      mMinSch1.1.hap1.fa.gz \
+      mMinSch1.1.hap2.fa.gz \
+      mMyoDau2.1.pri.fa.gz \
+      mVesMur1.1.pri.fa.gz  /lustre/scratch/mhoyosro/project3/REF_GENOMES
+
+
+
+
+
+
+
+.. csv-table:: PacBio Iso-Seq datasets
+   :header: "Run","ScientificName","BioSample","BioProject","SampleName","Sex","LibraryStrategy","LibrarySource","LibrarySelection","LibraryLayout","Platform","Model","Tissue_or_Source"
+
+   "SRR6951008","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female02","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951009","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female06","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951010","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female01","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951011","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female08","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951012","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female03","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951013","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female10","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951014","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female07","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951015","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female09","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951016","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female04","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951017","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female12","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951018","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female11","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951019","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female14","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951020","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female13","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951021","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female16","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951022","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female15","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951023","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female05","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6951024","Eonycteris spelaea","SAMN08794382","PRJNA427241","Female Isoseq of Eonycteris Spelaea","female17","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6958992","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male14","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6958993","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male13","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6958994","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male12","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6958995","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male11","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6958996","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male17","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6958997","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male16","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6958998","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male15","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6958999","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male10","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6959000","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male09","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6959001","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male02","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6959002","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male01","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6959003","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male04","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6959004","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male03","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6959005","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male06","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6959006","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male05","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6959007","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male08","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "SRR6959008","Eonycteris spelaea","SAMN08794381","PRJNA427241","Isoseq of Eonycteris Spelaea","male07","?","size fractionation","WGS","SINGLE","PACBIO_SMRT","PacBio RS II","pooled whole body"
+   "ERR13757855","Miniopterus schreibersii","SAMEA113980753","PRJEB74977","SAMEA113980753","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757856","Miniopterus schreibersii","SAMEA113980760","PRJEB74977","SAMEA113980760","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757857","Miniopterus schreibersii","SAMEA113980747","PRJEB74977","SAMEA113980747","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757858","Miniopterus schreibersii","SAMEA113980751","PRJEB74977","SAMEA113980751","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757859","Miniopterus schreibersii","SAMEA113980754","PRJEB74977","SAMEA113980754","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "SRR18652231","Molossus molossus","SAMN27363761","PRJNA628574","PB_ISOSEQ_mMolMol_BRAIN1","?","DD_PB_ISOSEQ_mMOLMOL1","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","brain"
+   "SRR18652230","Molossus molossus","SAMN27363762","PRJNA628574","PB_ISOSEQ_mMolMol_TESTES1","?","DD_PB_ISOSEQ_mMOLMOL2","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","testes"
+   "ERR13757850","Myotis daubentonii","SAMEA9921534","PRJEB61136","SAMEA9921534","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757851","Myotis daubentonii","SAMEA9921524","PRJEB61136","SAMEA9921524","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757852","Myotis daubentonii","SAMEA9921536","PRJEB61136","SAMEA9921536","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757853","Myotis daubentonii","SAMEA9921529","PRJEB61136","SAMEA9921529","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757854","Myotis daubentonii","SAMEA9921531","PRJEB61136","SAMEA9921531","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "SRR18652219","Myotis myotis","SAMN27363755","PRJNA628559","PB_ISOSEQ_mMyoMyo_BRAIN1","?","DD_PB_ISOSEQ_mMYOMYO1","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","brain"
+   "SRR18652218","Myotis myotis","SAMN27363756","PRJNA628559","PB_ISOSEQ_mMyoMyo_KIDNEY2","?","DD_PB_ISOSEQ_mMYOMYO2","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","kidney"
+   "SRR18652217","Myotis myotis","SAMN27363757","PRJNA628559","PB_ISOSEQ_mMyoMyo_LIVER2","?","DD_PB_ISOSEQ_mMYOMYO3","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","liver"
+   "ERR13757860","Myotis mystacinus","SAMEA114250318","PRJEB73909","SAMEA114250318","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757861","Myotis mystacinus","SAMEA114250325","PRJEB73909","SAMEA114250325","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757862","Myotis mystacinus","SAMEA114250320","PRJEB73909","SAMEA114250320","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757863","Myotis mystacinus","SAMEA114250331","PRJEB73909","SAMEA114250331","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757864","Myotis mystacinus","SAMEA114250322","PRJEB73909","SAMEA114250322","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757978","Myotis nattereri","SAMEA114614250","PRJEB77439","SAMEA114614250","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757979","Myotis nattereri","SAMEA114614266","PRJEB77439","SAMEA114614266","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757980","Myotis nattereri","SAMEA114614259","PRJEB77439","SAMEA114614259","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757981","Myotis nattereri","SAMEA114614261","PRJEB77439","SAMEA114614261","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13967126","Nyctalus leisleri","SAMEA114250348","PRJEB78822","SAMEA114250348","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13967127","Nyctalus leisleri","SAMEA114250343","PRJEB78822","SAMEA114250343","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13967128","Nyctalus leisleri","SAMEA114250344","PRJEB78822","SAMEA114250344","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13967129","Nyctalus leisleri","SAMEA114250340","PRJEB78822","SAMEA114250340","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "SRR18652128","Phyllostomus discolor","SAMN27363753","PRJNA628578","PB_ISOSEQ_mPhyDis_BRAIN","?","DD_PB_ISOSEQ_MPHYDIS5","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","brain"
+   "SRR18652132","Phyllostomus discolor","SAMN27363749","PRJNA628578","PB_ISOSEQ_mPhyDis_CEREBELLUM1","?","DD_PB_ISOSEQ_MPHYDIS1","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","cerebellum"
+   "SRR18652131","Phyllostomus discolor","SAMN27363750","PRJNA628578","PB_ISOSEQ_mPhyDis_HYPOTHALAMUS1","?","DD_PB_ISOSEQ_MPHYDIS2","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","hypothalamus"
+   "SRR18652130","Phyllostomus discolor","SAMN27363751","PRJNA628578","PB_ISOSEQ_mPhyDis_STRIATUM1","?","DD_PB_ISOSEQ_MPHYDIS3","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","striatum"
+   "SRR18652129","Phyllostomus discolor","SAMN27363752","PRJNA628578","PB_ISOSEQ_mPhyDis_TESTES1","?","DD_PB_ISOSEQ_MPHYDIS4","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","testes"
+   "SRR18652220","Pipistrellus kuhlii","SAMN27363758","PRJNA628567","PB_ISOSEQ_mPipKuh_TESTES1","?","DD_PB_ISOSEQ_mPIPKUH1","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","testes"
+   "ERR13757875","Pipistrellus pygmaeus","SAMEA9921546","PRJEB61048","SAMEA9921546","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757876","Pipistrellus pygmaeus","SAMEA9921513","PRJEB61048","SAMEA9921513","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757877","Pipistrellus pygmaeus","SAMEA9921548","PRJEB61048","SAMEA9921548","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757878","Pipistrellus pygmaeus","SAMEA9921549","PRJEB61048","SAMEA9921549","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757879","Pipistrellus pygmaeus","SAMEA9921514","PRJEB61048","SAMEA9921514","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757870","Plecotus auritus","SAMEA110056152","PRJEB65182","SAMEA110056152","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757871","Plecotus auritus","SAMEA110056156","PRJEB65182","SAMEA110056156","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757872","Plecotus auritus","SAMEA110056154","PRJEB65182","SAMEA110056154","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757873","Plecotus auritus","SAMEA110056160","PRJEB65182","SAMEA110056160","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757874","Plecotus auritus","SAMEA110056157","PRJEB65182","SAMEA110056157","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "SRR10153036","Rhinolophus ferrumequinum","SAMN12794483","PRJNA572574","Rfer_brain","?","?","RANDOM PCR","miRNA-Seq","SINGLE","BGISEQ","BGISEQ-500","brain"
+   "SRR18652180","Rhinolophus ferrumequinum","SAMN27363754","PRJNA628581","PB_ISOSEQ_mRhiFer_BRAIN1","?","DD_PB_ISOSEQ_mRHIFER1","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","brain"
+   "ERR13757944","Rhinolophus hipposideros","SAMEA113980893","PRJEB75440","SAMEA113980893","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757945","Rhinolophus hipposideros","SAMEA113980880","PRJEB75440","SAMEA113980880","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757946","Rhinolophus hipposideros","SAMEA113980888","PRJEB75440","SAMEA113980888","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757947","Rhinolophus hipposideros","SAMEA113980891","PRJEB75440","SAMEA113980891","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757948","Rhinolophus hipposideros","SAMEA113980890","PRJEB75440","SAMEA113980890","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "SRR17418361","Rhinolophus sinicus","SAMN24372506","PRJNA776471","Rhinolophus sinicus","?","mRhiSin1_iso_1","PCR","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel II","mixed"
+   "SRR18652229","Rousettus aegyptiacus","SAMN27363759","PRJNA628585","PB_ISOSEQ_mRouAeg_BRAIN1","?","DD_PB_ISOSEQ_mROUAEG1","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","brain"
+   "SRR18652228","Rousettus aegyptiacus","SAMN27363760","PRJNA628585","PB_ISOSEQ_mRouAeg_TESTES1","?","DD_PB_ISOSEQ_mROUAEG2","RANDOM","RNA-Seq","SINGLE","PACBIO_SMRT","Sequel","testes"
+   "ERR13757845","Vespertilio murinus","SAMEA112247423","PRJEB71533","SAMEA112247423","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757846","Vespertilio murinus","SAMEA112247427","PRJEB71533","SAMEA112247427","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757847","Vespertilio murinus","SAMEA112247431","PRJEB71533","SAMEA112247431","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757848","Vespertilio murinus","SAMEA112247430","PRJEB71533","SAMEA112247430","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+   "ERR13757849","Vespertilio murinus","SAMEA112247428","PRJEB71533","SAMEA112247428","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 2) Get the RNAseq data
@@ -35,6 +164,8 @@ I. GENOMAS DE TRABAJO
   
   cd /lustre/scratch/mhoyosro/project3/
   export PATH=/lustre/work/mhoyosro/software/sratoolkit/bin:${PATH}
+  export PATH=${HOME}/edirect:${PATH}
+
   
   prefetch --max-size 99999999999 SRR18652231
   prefetch --max-size 99999999999 SRR18652230
