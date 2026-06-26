@@ -30,11 +30,6 @@ I. GENOMAS DE TRABAJO
       mVesMur1.1.pri.fa.gz  /lustre/scratch/mhoyosro/project3/REF_GENOMES
 
 
-
-
-
-
-
 .. csv-table:: PacBio Iso-Seq datasets
    :header: "Run","ScientificName","BioSample","BioProject","SampleName","Sex","LibraryStrategy","LibrarySource","LibrarySelection","LibraryLayout","Platform","Model","Tissue_or_Source"
 
@@ -133,100 +128,188 @@ I. GENOMAS DE TRABAJO
    "ERR13757849","Vespertilio murinus","SAMEA112247428","PRJEB71533","SAMEA112247428","?","?","cDNA","FL-cDNA","SINGLE","PACBIO_SMRT","Revio","NA"
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-2) Get the RNAseq data
------------------------
-.. code-block:: bash
-
-  nano getdata.sh
+Los RNA estarán almacenados en 
 
 .. code-block:: bash
 
-  #!/bin/bash
-  #SBATCH --job-name=descarga
-  #SBATCH --output=%x.%j.out
-  #SBATCH --error=%x.%j.err
-  #SBATCH --partition=nocona
-  #SBATCH --nodes=8
-  #SBATCH --ntasks=8
-  
-  cd /lustre/scratch/mhoyosro/project3/
-  export PATH=/lustre/work/mhoyosro/software/sratoolkit/bin:${PATH}
-  export PATH=${HOME}/edirect:${PATH}
-
-  
-  prefetch --max-size 99999999999 SRR18652231
-  prefetch --max-size 99999999999 SRR18652230
-  prefetch --max-size 99999999999 SRR18652219
-  prefetch --max-size 99999999999 SRR18652218
-  prefetch --max-size 99999999999 SRR18652217
-  prefetch --max-size 99999999999 SRR18652128
-  prefetch --max-size 99999999999 SRR18652132
-  prefetch --max-size 99999999999 SRR18652131
-  prefetch --max-size 99999999999 SRR18652130
-  prefetch --max-size 99999999999 SRR18652129
-  prefetch --max-size 99999999999 SRR18652220
-  prefetch --max-size 99999999999 SRR18652180
-  prefetch --max-size 99999999999 SRR18652229
-  prefetch --max-size 99999999999 SRR18652228
-  prefetch --max-size 99999999999 SRR17418361
-  
-
-These data include the following information:
-
-| SRR18652231 *Molossus molossus* **brain**
-| SRR18652230 *Molossus molossus* **testes**
-| SRR18652219 *Myotis myotis* **brain**
-| SRR18652218 *Myotis myotis* **kidney**
-| SRR18652217 *Myotis myotis* **liver**
-| SRR18652128 *Phyllostomus discolor* **brain**
-| SRR18652132 *Phyllostomus discolor* **cerebellum**
-| SRR18652131 *Phyllostomus discolor* **hypothalamus**
-| SRR18652130 *Phyllostomus discolor* **striatum**
-| SRR18652129 *Phyllostomus discolor* **testes**
-| SRR18652220 *Pipistrellus kuhlii* **testes**
-| SRR18652180 *Rhinolophus ferrumequinum* **brain**
-| SRR18652229 *Rousettus aegyptiacus* **brain**
-| SRR18652228 *Rousettus aegyptiacus* **testes**
-| SRR17418361 *Hipposideros larvatus* **brain, heart, spleen, lung, muscle** and **liver** from an adult female
-
-.. Then unpack the data inside of this directory:
-.. /lustre/scratch/mhoyosro/project3/RNAs
-| 
-
-.. code-block:: bash
-
-  nano unpack.sh
-
-.. code-block:: bash
-
-  #!/bin/bash
-  #SBATCH --job-name=unpack
-  #SBATCH --output=%x.%j.out
-  #SBATCH --error=%x.%j.err
-  #SBATCH --partition=nocona
-  #SBATCH --nodes=8
-  #SBATCH --ntasks=8
-  
-  cd /lustre/scratch/mhoyosro/project3/RNAs
-  
-  export PATH=/lustre/work/mhoyosro/software/sratoolkit/bin:${PATH}
+  mkdir -p /lustre/scratch/mhoyosro/project3/RNA_DATA
 
 
-3) Align the RNAseq data to each genome
+
+
+
+2) Align the RNAseq data to each genome
 ---------------------------------------
+
+.. code-block:: bash
+
+  nano minimap2.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=minimap_rna
+  #SBATCH --output=logs/%x_%A_%a.out
+  #SBATCH --error=logs/%x_%A_%a.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=36
+  #SBATCH --array=1-78
+  
+  cd /lustre/scratch/mhoyosro/project3
+  
+  export PATH=/lustre/work/mhoyosro/software/minimap2:${PATH}
+  
+  RNA_DIR=/lustre/scratch/mhoyosro/project3/RNA_DATA
+  REF_DIR=/lustre/scratch/mhoyosro/project3/REF_GENOMES
+  OUT_DIR=/lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
+  
+  mkdir -p "$OUT_DIR" logs
+  
+  MAP_FILE=$OUT_DIR/run_reference_map.tsv
+  
+  cat > "$MAP_FILE" <<EOF
+  ERR13757845	Vespertilio_murinus	mVesMur1.1.pri.fa
+  ERR13757846	Vespertilio_murinus	mVesMur1.1.pri.fa
+  ERR13757847	Vespertilio_murinus	mVesMur1.1.pri.fa
+  ERR13757848	Vespertilio_murinus	mVesMur1.1.pri.fa
+  ERR13757849	Vespertilio_murinus	mVesMur1.1.pri.fa
+  ERR13757850	Myotis_daubentonii	mMyoDau2.1.pri.fa
+  ERR13757851	Myotis_daubentonii	mMyoDau2.1.pri.fa
+  ERR13757852	Myotis_daubentonii	mMyoDau2.1.pri.fa
+  ERR13757853	Myotis_daubentonii	mMyoDau2.1.pri.fa
+  ERR13757854	Myotis_daubentonii	mMyoDau2.1.pri.fa
+  ERR13757855	Miniopterus_schreibersii	mMinSch1.1.hap1.fa
+  ERR13757856	Miniopterus_schreibersii	mMinSch1.1.hap1.fa
+  ERR13757857	Miniopterus_schreibersii	mMinSch1.1.hap1.fa
+  ERR13757858	Miniopterus_schreibersii	mMinSch1.1.hap1.fa
+  ERR13757859	Miniopterus_schreibersii	mMinSch1.1.hap1.fa
+  ERR13757860	Myotis_mystacinus	mMyoMys1.1.hap1.fa
+  ERR13757861	Myotis_mystacinus	mMyoMys1.1.hap1.fa
+  ERR13757862	Myotis_mystacinus	mMyoMys1.1.hap1.fa
+  ERR13757863	Myotis_mystacinus	mMyoMys1.1.hap1.fa
+  ERR13757864	Myotis_mystacinus	mMyoMys1.1.hap1.fa
+  ERR13757870	Plecotus_auritus	mPleAur1.1.pri.fa
+  ERR13757871	Plecotus_auritus	mPleAur1.1.pri.fa
+  ERR13757872	Plecotus_auritus	mPleAur1.1.pri.fa
+  ERR13757873	Plecotus_auritus	mPleAur1.1.pri.fa
+  ERR13757874	Plecotus_auritus	mPleAur1.1.pri.fa
+  ERR13757875	Pipistrellus_pygmaeus	mPipKuh1.2.pri.fa
+  ERR13757876	Pipistrellus_pygmaeus	mPipKuh1.2.pri.fa
+  ERR13757877	Pipistrellus_pygmaeus	mPipKuh1.2.pri.fa
+  ERR13757878	Pipistrellus_pygmaeus	mPipKuh1.2.pri.fa
+  ERR13757879	Pipistrellus_pygmaeus	mPipKuh1.2.pri.fa
+  ERR13757944	Rhinolophus_hipposideros	mRhiHip1.1.hap1.fa
+  ERR13757945	Rhinolophus_hipposideros	mRhiHip1.1.hap1.fa
+  ERR13757946	Rhinolophus_hipposideros	mRhiHip1.1.hap1.fa
+  ERR13757947	Rhinolophus_hipposideros	mRhiHip1.1.hap1.fa
+  ERR13757948	Rhinolophus_hipposideros	mRhiHip1.1.hap1.fa
+  SRR17418361	Rhinolophus_sinicus	mRhiSin3.1.pri.fa
+  SRR18652128	Phyllostomus_discolor	mPhyDis1.3.pri.fa
+  SRR18652129	Phyllostomus_discolor	mPhyDis1.3.pri.fa
+  SRR18652130	Phyllostomus_discolor	mPhyDis1.3.pri.fa
+  SRR18652131	Phyllostomus_discolor	mPhyDis1.3.pri.fa
+  SRR18652132	Phyllostomus_discolor	mPhyDis1.3.pri.fa
+  SRR18652180	Rhinolophus_ferrumequinum	mRhiFer1.5.pri.fa
+  SRR18652217	Myotis_myotis	mMyoMyo1.6.pri.fa
+  SRR18652218	Myotis_myotis	mMyoMyo1.6.pri.fa
+  SRR18652219	Myotis_myotis	mMyoMyo1.6.pri.fa
+  SRR18652220	Pipistrellus_kuhlii	mPipKuh1.2.pri.fa
+  SRR18652228	Rousettus_aegyptiacus	mRouAeg1.4.pri.fa
+  SRR18652229	Rousettus_aegyptiacus	mRouAeg1.4.pri.fa
+  SRR18652230	Molossus_molossus	mMolMol1.2.pri.fa
+  SRR18652231	Molossus_molossus	mMolMol1.2.pri.fa
+  SRR6951008	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951009	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951010	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951011	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951012	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951013	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951014	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951015	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951016	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951017	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951018	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951019	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951020	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951021	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951022	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951023	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6951024	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6958992	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6958993	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6958994	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6958995	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6958996	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6958997	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6958998	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6958999	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6959000	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6959001	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6959002	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6959003	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6959004	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6959005	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6959006	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6959007	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  SRR6959008	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
+  EOF
+  
+  RUN=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MAP_FILE" | cut -f1)
+  SPECIES=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MAP_FILE" | cut -f2)
+  REF=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MAP_FILE" | cut -f3)
+  
+  FASTQ=$RNA_DIR/${RUN}.fastq
+  REFERENCE=$REF_DIR/$REF
+  SPECIES_OUT=$OUT_DIR/$SPECIES
+  
+  mkdir -p "$SPECIES_OUT"
+  
+  echo "RUN: $RUN"
+  echo "SPECIES: $SPECIES"
+  echo "FASTQ: $FASTQ"
+  echo "REFERENCE: $REFERENCE"
+  
+  if [ ! -f "$FASTQ" ]; then
+      echo "FASTQ not found: $FASTQ"
+      exit 1
+  fi
+  
+  if [ ! -f "$REFERENCE" ]; then
+      echo "Reference not found: $REFERENCE"
+      exit 1
+  fi
+  
+  minimap2 -t 36 -ax splice:hq -uf "$REFERENCE" "$FASTQ" | \
+  samtools sort -@ 8 -o "$SPECIES_OUT/${RUN}_MM.sorted.bam"
+  
+  samtools index "$SPECIES_OUT/${RUN}_MM.sorted.bam"
+  
+  samtools flagstat "$SPECIES_OUT/${RUN}_MM.sorted.bam" > "$SPECIES_OUT/${RUN}_MM.flagstat.txt"
+  
+  echo "Done: $RUN"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 .. code-block:: bash
 
