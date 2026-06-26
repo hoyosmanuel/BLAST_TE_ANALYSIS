@@ -255,9 +255,11 @@ Los RNA estarán almacenados en
   SRR6959008	Eonycteris_spelaea	mEonSpe1.2.hap1.fa
   EOF
   
-  RUN=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MAP_FILE" | cut -f1)
-  SPECIES=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MAP_FILE" | cut -f2)
-  REF=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MAP_FILE" | cut -f3)
+  LINE=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MAP_FILE")
+  
+  RUN=$(echo "$LINE" | awk '{print $1}')
+  SPECIES=$(echo "$LINE" | awk '{print $2}')
+  REF=$(echo "$LINE" | awk '{print $3}')
   
   FASTQ=$RNA_DIR/${RUN}.fastq
   REFERENCE=$REF_DIR/$REF
