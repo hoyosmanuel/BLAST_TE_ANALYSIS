@@ -148,156 +148,6 @@ Los RNA estarán almacenados en
 .. code-block:: bash
 
   #!/bin/bash
-  #SBATCH --job-name=minimap_rna
-  #SBATCH --output=logs/%x_%j.out
-  #SBATCH --error=logs/%x_%j.err
-  #SBATCH --partition=nocona
-  #SBATCH --nodes=1
-  #SBATCH --ntasks=36
-  
-  cd /lustre/scratch/mhoyosro/project3
-  
-  export PATH=/lustre/work/mhoyosro/software/minimap2:${PATH}
-  
-  RNA_DIR=/lustre/scratch/mhoyosro/project3/RNA_DATA
-  REF_DIR=/lustre/scratch/mhoyosro/project3/REF_GENOMES
-  OUT_DIR=/lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
-  
-  mkdir -p "$OUT_DIR" logs
-  
-  map_one () {
-      FASTQ=$1
-      SPECIES=$2
-      REF=$3
-  
-      RUN=$(basename "$FASTQ" .fastq)
-      REFERENCE="$REF_DIR/$REF"
-      SPECIES_OUT="$OUT_DIR/$SPECIES"
-  
-      mkdir -p "$SPECIES_OUT"
-  
-      echo "======================================"
-      echo "RUN: $RUN"
-      echo "SPECIES: $SPECIES"
-      echo "FASTQ: $FASTQ"
-      echo "REFERENCE: $REFERENCE"
-      echo "======================================"
-  
-      if [ ! -f "$FASTQ" ]; then
-          echo "FASTQ not found: $FASTQ"
-          return
-      fi
-  
-      if [ ! -f "$REFERENCE" ]; then
-          echo "Reference not found: $REFERENCE"
-          return
-      fi
-  
-      minimap2 -t 36 -ax splice:hq -uf "$REFERENCE" "$FASTQ" | \
-      samtools sort -@ 8 -o "$SPECIES_OUT/${RUN}_MM.sorted.bam"
-  
-      samtools index "$SPECIES_OUT/${RUN}_MM.sorted.bam"
-  
-      samtools flagstat "$SPECIES_OUT/${RUN}_MM.sorted.bam" > \
-      "$SPECIES_OUT/${RUN}_MM.flagstat.txt"
-  
-      echo "Done: $RUN"
-  }
-  
-  # Vespertilio murinus
-  for fq in $RNA_DIR/ERR1375784{5..9}.fastq; do
-      map_one "$fq" Vespertilio_murinus mVesMur1.1.pri.fa
-  done
-  
-  # Myotis daubentonii
-  for fq in $RNA_DIR/ERR1375785{0..4}.fastq; do
-      map_one "$fq" Myotis_daubentonii mMyoDau2.1.pri.fa
-  done
-  
-  # Miniopterus schreibersii
-  for fq in $RNA_DIR/ERR1375785{5..9}.fastq; do
-      map_one "$fq" Miniopterus_schreibersii mMinSch1.1.hap1.fa
-  done
-  
-  # Myotis mystacinus
-  for fq in $RNA_DIR/ERR1375786{0..4}.fastq; do
-      map_one "$fq" Myotis_mystacinus mMyoMys1.1.hap1.fa
-  done
-  
-  # Plecotus auritus
-  for fq in $RNA_DIR/ERR1375787{0..4}.fastq; do
-      map_one "$fq" Plecotus_auritus mPleAur1.1.pri.fa
-  done
-  
-  # Pipistrellus pygmaeus usando referencia cercana Pipistrellus kuhlii
-  for fq in $RNA_DIR/ERR1375787{5..9}.fastq; do
-      map_one "$fq" Pipistrellus_pygmaeus_on_Pipistrellus_kuhlii mPipKuh1.2.pri.fa
-  done
-  
-  # Rhinolophus hipposideros
-  for fq in $RNA_DIR/ERR1375794{4..8}.fastq; do
-      map_one "$fq" Rhinolophus_hipposideros mRhiHip1.1.hap1.fa
-  done
-  
-  # SRR Iso-Seq Bat1K
-  map_one "$RNA_DIR/SRR17418361.fastq" Rhinolophus_sinicus mRhiSin3.1.pri.fa
-  
-  for fq in $RNA_DIR/SRR1865212{8..9}.fastq $RNA_DIR/SRR1865213{0..2}.fastq; do
-      map_one "$fq" Phyllostomus_discolor mPhyDis1.3.pri.fa
-  done
-  
-  map_one "$RNA_DIR/SRR18652180.fastq" Rhinolophus_ferrumequinum mRhiFer1.5.pri.fa
-  
-  for fq in $RNA_DIR/SRR1865221{7..9}.fastq; do
-      map_one "$fq" Myotis_myotis mMyoMyo1.6.pri.fa
-  done
-  
-  map_one "$RNA_DIR/SRR18652220.fastq" Pipistrellus_kuhlii mPipKuh1.2.pri.fa
-  
-  for fq in $RNA_DIR/SRR1865222{8..9}.fastq; do
-      map_one "$fq" Rousettus_aegyptiacus mRouAeg1.4.pri.fa
-  done
-  
-  for fq in $RNA_DIR/SRR1865223{0..1}.fastq; do
-      map_one "$fq" Molossus_molossus mMolMol1.2.pri.fa
-  done
-  
-  # Eonycteris spelaea
-  for fq in $RNA_DIR/SRR69510{08..24}.fastq; do
-      map_one "$fq" Eonycteris_spelaea mEonSpe1.2.hap1.fa
-  done
-  
-  for fq in $RNA_DIR/SRR69589{92..99}.fastq $RNA_DIR/SRR69590{00..08}.fastq; do
-      map_one "$fq" Eonycteris_spelaea mEonSpe1.2.hap1.fa
-  done
-  
-  echo "ALL DONE"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-.. code-block:: bash
-
-  nano minimap2.sh
-
-.. code-block:: bash
-
-  #!/bin/bash
   #SBATCH --job-name=minimap
   #SBATCH --output=%x.%j.out
   #SBATCH --error=%x.%j.err
@@ -305,42 +155,314 @@ Los RNA estarán almacenados en
   #SBATCH --nodes=1
   #SBATCH --ntasks=36
   
-  cd /lustre/scratch/mhoyosro/project3/RESULTS
+  cd /lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
+  
   export PATH=/lustre/work/mhoyosro/software/minimap2:${PATH}
   
-  rna=/lustre/scratch/mhoyosro/project3/RNAs
+  rna=/lustre/scratch/mhoyosro/project3/RNA_DATA
+  ref=/lustre/scratch/mhoyosro/project3/REF_GENOMES
   
-  ref=/lustre/scratch/mhoyosro/project3/GENOMES
-  
-  myotis_reference="$ref/mMyoMyo1.6.pri.fa"
-  molossus_reference="$ref/mMolMol1.2.pri.fa"
-  rousettus_reference="$ref/mRouAeg1.4.pri.fa"
+  vespertilio_reference="$ref/mVesMur1.1.pri.fa"
+  myotis_daubentonii_reference="$ref/mMyoDau2.1.pri.fa"
+  miniopterus_reference="$ref/mMinSch1.1.hap1.fa"
+  myotis_mystacinus_reference="$ref/mMyoMys1.1.hap1.fa"
+  plecotus_reference="$ref/mPleAur1.1.pri.fa"
   pipistrellus_reference="$ref/mPipKuh1.2.pri.fa"
-  rhinolophus_reference="$ref/mRhiFer1.5.pri.fa"
+  rhinolophus_hipposideros_reference="$ref/mRhiHip1.1.hap1.fa"
+  rhinolophus_sinicus_reference="$ref/mRhiSin3.1.pri.fa"
+  rhinolophus_ferrumequinum_reference="$ref/mRhiFer1.5.pri.fa"
   phyllostomus_reference="$ref/mPhyDis1.3.pri.fa"
-  hipposideros_reference="$ref/mHipLar1.2.pri.fa"
+  myotis_myotis_reference="$ref/mMyoMyo1.6.pri.fa"
+  rousettus_reference="$ref/mRouAeg1.4.pri.fa"
+  molossus_reference="$ref/mMolMol1.2.pri.fa"
+  eonycteris_reference="$ref/mEonSpe1.2.hap1.fa"
   
-  minimap2 -ax splice $molossus_reference $rna/SRR18652231.fastq > molossus/SRR18652231_MM.sam
-  minimap2 -ax splice $molossus_reference $rna/SRR18652230.fastq > molossus/SRR18652230_MM.sam
-  minimap2 -ax splice $myotis_reference $rna/SRR18652217.fastq > myotis/SRR18652217_MM.sam
-  minimap2 -ax splice $myotis_reference $rna/SRR18652218.fastq > myotis/SRR18652218_MM.sam
-  minimap2 -ax splice $myotis_reference $rna/SRR18652219.fastq > myotis/SRR18652219_MM.sam
-  minimap2 -ax splice $phyllostomus_reference $rna/SRR18652128.fastq > phyllostomus/SRR18652128_MM.sam
-  minimap2 -ax splice $phyllostomus_reference $rna/SRR18652129.fastq > phyllostomus/SRR18652129_MM.sam
-  minimap2 -ax splice $phyllostomus_reference $rna/SRR18652130.fastq > phyllostomus/SRR18652130_MM.sam
-  minimap2 -ax splice $phyllostomus_reference $rna/SRR18652131.fastq > phyllostomus/SRR18652131_MM.sam
-  minimap2 -ax splice $phyllostomus_reference $rna/SRR18652132.fastq > phyllostomus/SRR18652132_MM.sam
-  minimap2 -ax splice $pipistrellus_reference $rna/SRR18652220.fastq > pipistrellus/SRR18652220_MM.sam
-  minimap2 -ax splice $rhinolophus_reference $rna/SRR18652180.fastq > rhinolophus/SRR18652180_MM.sam
-  minimap2 -ax splice $rousettus_reference $rna/SRR18652228.fastq > rousettus/SRR18652228_MM.sam
-  minimap2 -ax splice $rousettus_reference $rna/SRR18652229.fastq > rousettus/SRR18652229_MM.sam
-  minimap2 -ax splice $hipposideros_reference $rna/SRR17418361.fastq > hipposideros/SRR17418361_MM.sam
+  mkdir -p Vespertilio_murinus
+  mkdir -p Myotis_daubentonii
+  mkdir -p Miniopterus_schreibersii
+  mkdir -p Myotis_mystacinus
+  mkdir -p Plecotus_auritus
+  mkdir -p Pipistrellus_pygmaeus
+  mkdir -p Rhinolophus_hipposideros
+  mkdir -p Rhinolophus_sinicus
+  mkdir -p Rhinolophus_ferrumequinum
+  mkdir -p Phyllostomus_discolor
+  mkdir -p Myotis_myotis
+  mkdir -p Pipistrellus_kuhlii
+  mkdir -p Rousettus_aegyptiacus
+  mkdir -p Molossus_molossus
+  mkdir -p Eonycteris_spelaea
+  
+  # Vespertilio murinus
+  minimap2 -t 36 -ax splice $vespertilio_reference $rna/ERR13757845.fastq > Vespertilio_murinus/ERR13757845_MM.sam
+  minimap2 -t 36 -ax splice $vespertilio_reference $rna/ERR13757846.fastq > Vespertilio_murinus/ERR13757846_MM.sam
+  minimap2 -t 36 -ax splice $vespertilio_reference $rna/ERR13757847.fastq > Vespertilio_murinus/ERR13757847_MM.sam
+  minimap2 -t 36 -ax splice $vespertilio_reference $rna/ERR13757848.fastq > Vespertilio_murinus/ERR13757848_MM.sam
+  minimap2 -t 36 -ax splice $vespertilio_reference $rna/ERR13757849.fastq > Vespertilio_murinus/ERR13757849_MM.sam
+  
+  # Myotis daubentonii
+  minimap2 -t 36 -ax splice $myotis_daubentonii_reference $rna/ERR13757850.fastq > Myotis_daubentonii/ERR13757850_MM.sam
+  minimap2 -t 36 -ax splice $myotis_daubentonii_reference $rna/ERR13757851.fastq > Myotis_daubentonii/ERR13757851_MM.sam
+  minimap2 -t 36 -ax splice $myotis_daubentonii_reference $rna/ERR13757852.fastq > Myotis_daubentonii/ERR13757852_MM.sam
+  minimap2 -t 36 -ax splice $myotis_daubentonii_reference $rna/ERR13757853.fastq > Myotis_daubentonii/ERR13757853_MM.sam
+  minimap2 -t 36 -ax splice $myotis_daubentonii_reference $rna/ERR13757854.fastq > Myotis_daubentonii/ERR13757854_MM.sam
+  
+  # Miniopterus schreibersii
+  minimap2 -t 36 -ax splice $miniopterus_reference $rna/ERR13757855.fastq > Miniopterus_schreibersii/ERR13757855_MM.sam
+  minimap2 -t 36 -ax splice $miniopterus_reference $rna/ERR13757856.fastq > Miniopterus_schreibersii/ERR13757856_MM.sam
+  minimap2 -t 36 -ax splice $miniopterus_reference $rna/ERR13757857.fastq > Miniopterus_schreibersii/ERR13757857_MM.sam
+  minimap2 -t 36 -ax splice $miniopterus_reference $rna/ERR13757858.fastq > Miniopterus_schreibersii/ERR13757858_MM.sam
+  minimap2 -t 36 -ax splice $miniopterus_reference $rna/ERR13757859.fastq > Miniopterus_schreibersii/ERR13757859_MM.sam
+  
+  # Myotis mystacinus
+  minimap2 -t 36 -ax splice $myotis_mystacinus_reference $rna/ERR13757860.fastq > Myotis_mystacinus/ERR13757860_MM.sam
+  minimap2 -t 36 -ax splice $myotis_mystacinus_reference $rna/ERR13757861.fastq > Myotis_mystacinus/ERR13757861_MM.sam
+  minimap2 -t 36 -ax splice $myotis_mystacinus_reference $rna/ERR13757862.fastq > Myotis_mystacinus/ERR13757862_MM.sam
+  minimap2 -t 36 -ax splice $myotis_mystacinus_reference $rna/ERR13757863.fastq > Myotis_mystacinus/ERR13757863_MM.sam
+  minimap2 -t 36 -ax splice $myotis_mystacinus_reference $rna/ERR13757864.fastq > Myotis_mystacinus/ERR13757864_MM.sam
+  
+  # Plecotus auritus
+  minimap2 -t 36 -ax splice $plecotus_reference $rna/ERR13757870.fastq > Plecotus_auritus/ERR13757870_MM.sam
+  minimap2 -t 36 -ax splice $plecotus_reference $rna/ERR13757871.fastq > Plecotus_auritus/ERR13757871_MM.sam
+  minimap2 -t 36 -ax splice $plecotus_reference $rna/ERR13757872.fastq > Plecotus_auritus/ERR13757872_MM.sam
+  minimap2 -t 36 -ax splice $plecotus_reference $rna/ERR13757873.fastq > Plecotus_auritus/ERR13757873_MM.sam
+  minimap2 -t 36 -ax splice $plecotus_reference $rna/ERR13757874.fastq > Plecotus_auritus/ERR13757874_MM.sam
+  
+  # Pipistrellus pygmaeus usando referencia de Pipistrellus kuhlii
+  minimap2 -t 36 -ax splice $pipistrellus_reference $rna/ERR13757875.fastq > Pipistrellus_pygmaeus/ERR13757875_MM.sam
+  minimap2 -t 36 -ax splice $pipistrellus_reference $rna/ERR13757876.fastq > Pipistrellus_pygmaeus/ERR13757876_MM.sam
+  minimap2 -t 36 -ax splice $pipistrellus_reference $rna/ERR13757877.fastq > Pipistrellus_pygmaeus/ERR13757877_MM.sam
+  minimap2 -t 36 -ax splice $pipistrellus_reference $rna/ERR13757878.fastq > Pipistrellus_pygmaeus/ERR13757878_MM.sam
+  minimap2 -t 36 -ax splice $pipistrellus_reference $rna/ERR13757879.fastq > Pipistrellus_pygmaeus/ERR13757879_MM.sam
+  
+  # Rhinolophus hipposideros
+  minimap2 -t 36 -ax splice $rhinolophus_hipposideros_reference $rna/ERR13757944.fastq > Rhinolophus_hipposideros/ERR13757944_MM.sam
+  minimap2 -t 36 -ax splice $rhinolophus_hipposideros_reference $rna/ERR13757945.fastq > Rhinolophus_hipposideros/ERR13757945_MM.sam
+  minimap2 -t 36 -ax splice $rhinolophus_hipposideros_reference $rna/ERR13757946.fastq > Rhinolophus_hipposideros/ERR13757946_MM.sam
+  minimap2 -t 36 -ax splice $rhinolophus_hipposideros_reference $rna/ERR13757947.fastq > Rhinolophus_hipposideros/ERR13757947_MM.sam
+  minimap2 -t 36 -ax splice $rhinolophus_hipposideros_reference $rna/ERR13757948.fastq > Rhinolophus_hipposideros/ERR13757948_MM.sam
+  
+  # Rhinolophus sinicus
+  minimap2 -t 36 -ax splice $rhinolophus_sinicus_reference $rna/SRR17418361.fastq > Rhinolophus_sinicus/SRR17418361_MM.sam
+  
+  # Phyllostomus discolor
+  minimap2 -t 36 -ax splice $phyllostomus_reference $rna/SRR18652128.fastq > Phyllostomus_discolor/SRR18652128_MM.sam
+  minimap2 -t 36 -ax splice $phyllostomus_reference $rna/SRR18652129.fastq > Phyllostomus_discolor/SRR18652129_MM.sam
+  minimap2 -t 36 -ax splice $phyllostomus_reference $rna/SRR18652130.fastq > Phyllostomus_discolor/SRR18652130_MM.sam
+  minimap2 -t 36 -ax splice $phyllostomus_reference $rna/SRR18652131.fastq > Phyllostomus_discolor/SRR18652131_MM.sam
+  minimap2 -t 36 -ax splice $phyllostomus_reference $rna/SRR18652132.fastq > Phyllostomus_discolor/SRR18652132_MM.sam
+  
+  # Rhinolophus ferrumequinum
+  minimap2 -t 36 -ax splice $rhinolophus_ferrumequinum_reference $rna/SRR18652180.fastq > Rhinolophus_ferrumequinum/SRR18652180_MM.sam
+  
+  # Myotis myotis
+  minimap2 -t 36 -ax splice $myotis_myotis_reference $rna/SRR18652217.fastq > Myotis_myotis/SRR18652217_MM.sam
+  minimap2 -t 36 -ax splice $myotis_myotis_reference $rna/SRR18652218.fastq > Myotis_myotis/SRR18652218_MM.sam
+  minimap2 -t 36 -ax splice $myotis_myotis_reference $rna/SRR18652219.fastq > Myotis_myotis/SRR18652219_MM.sam
+  
+  # Pipistrellus kuhlii
+  minimap2 -t 36 -ax splice $pipistrellus_reference $rna/SRR18652220.fastq > Pipistrellus_kuhlii/SRR18652220_MM.sam
+  
+  # Rousettus aegyptiacus
+  minimap2 -t 36 -ax splice $rousettus_reference $rna/SRR18652228.fastq > Rousettus_aegyptiacus/SRR18652228_MM.sam
+  minimap2 -t 36 -ax splice $rousettus_reference $rna/SRR18652229.fastq > Rousettus_aegyptiacus/SRR18652229_MM.sam
+  
+  # Molossus molossus
+  minimap2 -t 36 -ax splice $molossus_reference $rna/SRR18652230.fastq > Molossus_molossus/SRR18652230_MM.sam
+  minimap2 -t 36 -ax splice $molossus_reference $rna/SRR18652231.fastq > Molossus_molossus/SRR18652231_MM.sam
+  
+  # Eonycteris spelaea
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951008.fastq > Eonycteris_spelaea/SRR6951008_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951009.fastq > Eonycteris_spelaea/SRR6951009_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951010.fastq > Eonycteris_spelaea/SRR6951010_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951011.fastq > Eonycteris_spelaea/SRR6951011_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951012.fastq > Eonycteris_spelaea/SRR6951012_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951013.fastq > Eonycteris_spelaea/SRR6951013_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951014.fastq > Eonycteris_spelaea/SRR6951014_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951015.fastq > Eonycteris_spelaea/SRR6951015_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951016.fastq > Eonycteris_spelaea/SRR6951016_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951017.fastq > Eonycteris_spelaea/SRR6951017_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951018.fastq > Eonycteris_spelaea/SRR6951018_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951019.fastq > Eonycteris_spelaea/SRR6951019_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951020.fastq > Eonycteris_spelaea/SRR6951020_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951021.fastq > Eonycteris_spelaea/SRR6951021_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951022.fastq > Eonycteris_spelaea/SRR6951022_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951023.fastq > Eonycteris_spelaea/SRR6951023_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6951024.fastq > Eonycteris_spelaea/SRR6951024_MM.sam
+  
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6958992.fastq > Eonycteris_spelaea/SRR6958992_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6958993.fastq > Eonycteris_spelaea/SRR6958993_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6958994.fastq > Eonycteris_spelaea/SRR6958994_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6958995.fastq > Eonycteris_spelaea/SRR6958995_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6958996.fastq > Eonycteris_spelaea/SRR6958996_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6958997.fastq > Eonycteris_spelaea/SRR6958997_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6958998.fastq > Eonycteris_spelaea/SRR6958998_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6958999.fastq > Eonycteris_spelaea/SRR6958999_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6959000.fastq > Eonycteris_spelaea/SRR6959000_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6959001.fastq > Eonycteris_spelaea/SRR6959001_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6959002.fastq > Eonycteris_spelaea/SRR6959002_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6959003.fastq > Eonycteris_spelaea/SRR6959003_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6959004.fastq > Eonycteris_spelaea/SRR6959004_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6959005.fastq > Eonycteris_spelaea/SRR6959005_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6959006.fastq > Eonycteris_spelaea/SRR6959006_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6959007.fastq > Eonycteris_spelaea/SRR6959007_MM.sam
+  minimap2 -t 36 -ax splice $eonycteris_reference $rna/SRR6959008.fastq > Eonycteris_spelaea/SRR6959008_MM.sam
+  
+  echo "ALL MAPPING DONE"
 
-  fastq-dump *.sra
+
+
+But this is massive so let us do in array
+
+.. code-block:: bash
+
+  nano map_all_to_sam_array.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=minimap
+  #SBATCH --output=logs/%x_%A_%a.out
+  #SBATCH --error=logs/%x_%A_%a.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=36
+  #SBATCH --array=1-78
+  
+  cd /lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
+  
+  export PATH=/lustre/work/mhoyosro/software/minimap2:${PATH}
+  
+  rna=/lustre/scratch/mhoyosro/project3/RNA_DATA
+  ref=/lustre/scratch/mhoyosro/project3/REF_GENOMES
+  
+  mkdir -p logs
+  
+  case ${SLURM_ARRAY_TASK_ID} in
+  1) RUN=ERR13757845; SPECIES=Vespertilio_murinus; REFERENCE="$ref/mVesMur1.1.pri.fa" ;;
+  2) RUN=ERR13757846; SPECIES=Vespertilio_murinus; REFERENCE="$ref/mVesMur1.1.pri.fa" ;;
+  3) RUN=ERR13757847; SPECIES=Vespertilio_murinus; REFERENCE="$ref/mVesMur1.1.pri.fa" ;;
+  4) RUN=ERR13757848; SPECIES=Vespertilio_murinus; REFERENCE="$ref/mVesMur1.1.pri.fa" ;;
+  5) RUN=ERR13757849; SPECIES=Vespertilio_murinus; REFERENCE="$ref/mVesMur1.1.pri.fa" ;;
+  
+  6) RUN=ERR13757850; SPECIES=Myotis_daubentonii; REFERENCE="$ref/mMyoDau2.1.pri.fa" ;;
+  7) RUN=ERR13757851; SPECIES=Myotis_daubentonii; REFERENCE="$ref/mMyoDau2.1.pri.fa" ;;
+  8) RUN=ERR13757852; SPECIES=Myotis_daubentonii; REFERENCE="$ref/mMyoDau2.1.pri.fa" ;;
+  9) RUN=ERR13757853; SPECIES=Myotis_daubentonii; REFERENCE="$ref/mMyoDau2.1.pri.fa" ;;
+  10) RUN=ERR13757854; SPECIES=Myotis_daubentonii; REFERENCE="$ref/mMyoDau2.1.pri.fa" ;;
+  
+  11) RUN=ERR13757855; SPECIES=Miniopterus_schreibersii; REFERENCE="$ref/mMinSch1.1.hap1.fa" ;;
+  12) RUN=ERR13757856; SPECIES=Miniopterus_schreibersii; REFERENCE="$ref/mMinSch1.1.hap1.fa" ;;
+  13) RUN=ERR13757857; SPECIES=Miniopterus_schreibersii; REFERENCE="$ref/mMinSch1.1.hap1.fa" ;;
+  14) RUN=ERR13757858; SPECIES=Miniopterus_schreibersii; REFERENCE="$ref/mMinSch1.1.hap1.fa" ;;
+  15) RUN=ERR13757859; SPECIES=Miniopterus_schreibersii; REFERENCE="$ref/mMinSch1.1.hap1.fa" ;;
+  
+  16) RUN=ERR13757860; SPECIES=Myotis_mystacinus; REFERENCE="$ref/mMyoMys1.1.hap1.fa" ;;
+  17) RUN=ERR13757861; SPECIES=Myotis_mystacinus; REFERENCE="$ref/mMyoMys1.1.hap1.fa" ;;
+  18) RUN=ERR13757862; SPECIES=Myotis_mystacinus; REFERENCE="$ref/mMyoMys1.1.hap1.fa" ;;
+  19) RUN=ERR13757863; SPECIES=Myotis_mystacinus; REFERENCE="$ref/mMyoMys1.1.hap1.fa" ;;
+  20) RUN=ERR13757864; SPECIES=Myotis_mystacinus; REFERENCE="$ref/mMyoMys1.1.hap1.fa" ;;
+  
+  21) RUN=ERR13757870; SPECIES=Plecotus_auritus; REFERENCE="$ref/mPleAur1.1.pri.fa" ;;
+  22) RUN=ERR13757871; SPECIES=Plecotus_auritus; REFERENCE="$ref/mPleAur1.1.pri.fa" ;;
+  23) RUN=ERR13757872; SPECIES=Plecotus_auritus; REFERENCE="$ref/mPleAur1.1.pri.fa" ;;
+  24) RUN=ERR13757873; SPECIES=Plecotus_auritus; REFERENCE="$ref/mPleAur1.1.pri.fa" ;;
+  25) RUN=ERR13757874; SPECIES=Plecotus_auritus; REFERENCE="$ref/mPleAur1.1.pri.fa" ;;
+  
+  26) RUN=ERR13757875; SPECIES=Pipistrellus_pygmaeus; REFERENCE="$ref/mPipKuh1.2.pri.fa" ;;
+  27) RUN=ERR13757876; SPECIES=Pipistrellus_pygmaeus; REFERENCE="$ref/mPipKuh1.2.pri.fa" ;;
+  28) RUN=ERR13757877; SPECIES=Pipistrellus_pygmaeus; REFERENCE="$ref/mPipKuh1.2.pri.fa" ;;
+  29) RUN=ERR13757878; SPECIES=Pipistrellus_pygmaeus; REFERENCE="$ref/mPipKuh1.2.pri.fa" ;;
+  30) RUN=ERR13757879; SPECIES=Pipistrellus_pygmaeus; REFERENCE="$ref/mPipKuh1.2.pri.fa" ;;
+  
+  31) RUN=ERR13757944; SPECIES=Rhinolophus_hipposideros; REFERENCE="$ref/mRhiHip1.1.hap1.fa" ;;
+  32) RUN=ERR13757945; SPECIES=Rhinolophus_hipposideros; REFERENCE="$ref/mRhiHip1.1.hap1.fa" ;;
+  33) RUN=ERR13757946; SPECIES=Rhinolophus_hipposideros; REFERENCE="$ref/mRhiHip1.1.hap1.fa" ;;
+  34) RUN=ERR13757947; SPECIES=Rhinolophus_hipposideros; REFERENCE="$ref/mRhiHip1.1.hap1.fa" ;;
+  35) RUN=ERR13757948; SPECIES=Rhinolophus_hipposideros; REFERENCE="$ref/mRhiHip1.1.hap1.fa" ;;
+  
+  36) RUN=SRR17418361; SPECIES=Rhinolophus_sinicus; REFERENCE="$ref/mRhiSin3.1.pri.fa" ;;
+  
+  37) RUN=SRR18652128; SPECIES=Phyllostomus_discolor; REFERENCE="$ref/mPhyDis1.3.pri.fa" ;;
+  38) RUN=SRR18652129; SPECIES=Phyllostomus_discolor; REFERENCE="$ref/mPhyDis1.3.pri.fa" ;;
+  39) RUN=SRR18652130; SPECIES=Phyllostomus_discolor; REFERENCE="$ref/mPhyDis1.3.pri.fa" ;;
+  40) RUN=SRR18652131; SPECIES=Phyllostomus_discolor; REFERENCE="$ref/mPhyDis1.3.pri.fa" ;;
+  41) RUN=SRR18652132; SPECIES=Phyllostomus_discolor; REFERENCE="$ref/mPhyDis1.3.pri.fa" ;;
+  
+  42) RUN=SRR18652180; SPECIES=Rhinolophus_ferrumequinum; REFERENCE="$ref/mRhiFer1.5.pri.fa" ;;
+  
+  43) RUN=SRR18652217; SPECIES=Myotis_myotis; REFERENCE="$ref/mMyoMyo1.6.pri.fa" ;;
+  44) RUN=SRR18652218; SPECIES=Myotis_myotis; REFERENCE="$ref/mMyoMyo1.6.pri.fa" ;;
+  45) RUN=SRR18652219; SPECIES=Myotis_myotis; REFERENCE="$ref/mMyoMyo1.6.pri.fa" ;;
+  
+  46) RUN=SRR18652220; SPECIES=Pipistrellus_kuhlii; REFERENCE="$ref/mPipKuh1.2.pri.fa" ;;
+  
+  47) RUN=SRR18652228; SPECIES=Rousettus_aegyptiacus; REFERENCE="$ref/mRouAeg1.4.pri.fa" ;;
+  48) RUN=SRR18652229; SPECIES=Rousettus_aegyptiacus; REFERENCE="$ref/mRouAeg1.4.pri.fa" ;;
+  
+  49) RUN=SRR18652230; SPECIES=Molossus_molossus; REFERENCE="$ref/mMolMol1.2.pri.fa" ;;
+  50) RUN=SRR18652231; SPECIES=Molossus_molossus; REFERENCE="$ref/mMolMol1.2.pri.fa" ;;
+  
+  51) RUN=SRR6951008; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  52) RUN=SRR6951009; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  53) RUN=SRR6951010; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  54) RUN=SRR6951011; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  55) RUN=SRR6951012; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  56) RUN=SRR6951013; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  57) RUN=SRR6951014; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  58) RUN=SRR6951015; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  59) RUN=SRR6951016; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  60) RUN=SRR6951017; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  61) RUN=SRR6951018; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  62) RUN=SRR6951019; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  63) RUN=SRR6951020; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  64) RUN=SRR6951021; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  65) RUN=SRR6951022; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  66) RUN=SRR6951023; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  67) RUN=SRR6951024; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  
+  68) RUN=SRR6958992; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  69) RUN=SRR6958993; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  70) RUN=SRR6958994; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  71) RUN=SRR6958995; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  72) RUN=SRR6958996; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  73) RUN=SRR6958997; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  74) RUN=SRR6958998; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  75) RUN=SRR6958999; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  76) RUN=SRR6959000; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  77) RUN=SRR6959001; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  78) RUN=SRR6959002; SPECIES=Eonycteris_spelaea; REFERENCE="$ref/mEonSpe1.2.hap1.fa" ;;
+  *) echo "Invalid SLURM_ARRAY_TASK_ID: ${SLURM_ARRAY_TASK_ID}"; exit 1 ;;
+  esac
+  
+  mkdir -p "$SPECIES"
+  
+  FASTQ="$rna/${RUN}.fastq"
+  OUTSAM="$SPECIES/${RUN}_MM.sam"
+  
+  echo "RUN: $RUN"
+  echo "SPECIES: $SPECIES"
+  echo "FASTQ: $FASTQ"
+  echo "REFERENCE: $REFERENCE"
+  echo "OUTSAM: $OUTSAM"
+  
+  if [ ! -f "$FASTQ" ]; then
+      echo "FASTQ not found: $FASTQ"
+      exit 1
+  fi
+  
+  if [ ! -f "$REFERENCE" ]; then
+      echo "REFERENCE not found: $REFERENCE"
+      exit 1
+  fi
+  
+  minimap2 -t 36 -ax splice "$REFERENCE" "$FASTQ" > "$OUTSAM"
+  
+  echo "DONE: $RUN"
 
 
 
-4) Bamming/Sorting/Indexing the RNAseq aligment
+3) Bamming/Sorting/Indexing the RNAseq aligment
 -----------------------------------------------
 
 4.1 Bamming
@@ -357,36 +479,23 @@ Los RNA estarán almacenados en
   #SBATCH --output=%x.%A_%a.out
   #SBATCH --error=%x.%A_%a.err
   #SBATCH --partition=nocona
-  #SBATCH --array=0-14
+  #SBATCH --array=0-77
   #SBATCH --nodes=1
   #SBATCH --ntasks=1
   
-  cd /lustre/scratch/mhoyosro/project3/RESULTS
+  cd /lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
   
   . /home/mhoyosro/conda/etc/profile.d/conda.sh
   conda activate alineador
   
   # Array de archivos SAM
-  sams=(
-  "molossus/SRR18652231_MM.sam"
-  "molossus/SRR18652230_MM.sam"
-  "myotis/SRR18652217_MM.sam"
-  "myotis/SRR18652218_MM.sam"
-  "myotis/SRR18652219_MM.sam"
-  "phyllostomus/SRR18652128_MM.sam"
-  "phyllostomus/SRR18652129_MM.sam"
-  "phyllostomus/SRR18652130_MM.sam"
-  "phyllostomus/SRR18652131_MM.sam"
-  "phyllostomus/SRR18652132_MM.sam"
-  "pipistrellus/SRR18652220_MM.sam"
-  "rhinolophus/SRR18652180_MM.sam"
-  "rousettus/SRR18652228_MM.sam"
-  "rousettus/SRR18652229_MM.sam"
-  "hipposideros/SRR17418361_MM.sam"
-  )
+  mapfile -t sams < <(find . -name "*_MM.sam" | sort)
   
   sam=${sams[$SLURM_ARRAY_TASK_ID]}
   bam=${sam%.sam}.bam
+  
+  echo "SAM: $sam"
+  echo "BAM: $bam"
   
   samtools view -bS "$sam" > "$bam"
 
