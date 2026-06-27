@@ -465,7 +465,7 @@ But this is massive so let us do in array
 3) Bamming/Sorting/Indexing the RNAseq aligment
 -----------------------------------------------
 
-4.1 Bamming
+3.1 Bamming
 ~~~~~~~~~~~
 
 .. code-block:: bash
@@ -499,7 +499,7 @@ But this is massive so let us do in array
   
   samtools view -bS "$sam" > "$bam"
 
-4.2 Sorting
+3.2 Sorting
 ~~~~~~~~~~~
 
 .. code-block:: bash
@@ -513,37 +513,30 @@ But this is massive so let us do in array
   #SBATCH --output=%x.%A_%a.out
   #SBATCH --error=%x.%A_%a.err
   #SBATCH --partition=nocona
-  #SBATCH --array=0-14
+  #SBATCH --array=0-77
   #SBATCH --nodes=1
   #SBATCH --ntasks=1
   
-  cd /lustre/scratch/mhoyosro/project3/RESULTS
+  cd /lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
   
   . /home/mhoyosro/conda/etc/profile.d/conda.sh
   conda activate alineador
   
-  bams=(
-  "molossus/SRR18652231_MM.bam"
-  "molossus/SRR18652230_MM.bam"
-  "myotis/SRR18652217_MM.bam"
-  "myotis/SRR18652218_MM.bam"
-  "myotis/SRR18652219_MM.bam"
-  "phyllostomus/SRR18652128_MM.bam"
-  "phyllostomus/SRR18652129_MM.bam"
-  "phyllostomus/SRR18652130_MM.bam"
-  "phyllostomus/SRR18652131_MM.bam"
-  "phyllostomus/SRR18652132_MM.bam"
-  "pipistrellus/SRR18652220_MM.bam"
-  "rhinolophus/SRR18652180_MM.bam"
-  "rousettus/SRR18652228_MM.bam"
-  "rousettus/SRR18652229_MM.bam"
-  "hipposideros/SRR17418361_MM.bam"
-  )
+  # Array de archivos BAM
+  mapfile -t bams < <(find . -name "*_MM.bam" | sort)
   
   bam=${bams[$SLURM_ARRAY_TASK_ID]}
   sorted=${bam%.bam}.sorted.bam
   
+  echo "INPUT : $bam"
+  echo "OUTPUT: $sorted"
+  
   samtools sort "$bam" -o "$sorted"
+
+
+
+
+
 
 4.3 Indexing
 ~~~~~~~~~~~~
