@@ -535,10 +535,7 @@ But this is massive so let us do in array
 
 
 
-
-
-
-4.3 Indexing
+3.3 Indexing
 ~~~~~~~~~~~~
 
 .. code-block:: bash
@@ -552,40 +549,29 @@ But this is massive so let us do in array
   #SBATCH --output=%x.%A_%a.out
   #SBATCH --error=%x.%A_%a.err
   #SBATCH --partition=nocona
-  #SBATCH --array=0-14
+  #SBATCH --array=0-77
   #SBATCH --nodes=1
   #SBATCH --ntasks=1
   
-  cd /lustre/scratch/mhoyosro/project3/RESULTS
+  cd /lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
   
   . /home/mhoyosro/conda/etc/profile.d/conda.sh
   conda activate alineador
   
-  
   sorted_bams=(
-  "molossus/SRR18652231_MM.sorted.bam"
-  "molossus/SRR18652230_MM.sorted.bam"
-  "myotis/SRR18652217_MM.sorted.bam"
-  "myotis/SRR18652218_MM.sorted.bam"
-  "myotis/SRR18652219_MM.sorted.bam"
-  "phyllostomus/SRR18652128_MM.sorted.bam"
-  "phyllostomus/SRR18652129_MM.sorted.bam"
-  "phyllostomus/SRR18652130_MM.sorted.bam"
-  "phyllostomus/SRR18652131_MM.sorted.bam"
-  "phyllostomus/SRR18652132_MM.sorted.bam"
-  "pipistrellus/SRR18652220_MM.sorted.bam"
-  "rhinolophus/SRR18652180_MM.sorted.bam"
-  "rousettus/SRR18652228_MM.sorted.bam"
-  "rousettus/SRR18652229_MM.sorted.bam"
-  "hipposideros/SRR17418361_MM.sorted.bam"
+  $(find /lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING \
+  -name "*_MM.sorted.bam" | sort)
   )
   
   bam=${sorted_bams[$SLURM_ARRAY_TASK_ID]}
   
+  echo "Indexing:"
+  echo "$bam"
+  
   samtools index "$bam"
 
 
-5) Assembly the alignments with Stringtie
+4) Assembly the alignments with Stringtie
 -----------------------------------------
 
 #I actually have StringTie 2 for long reads (we need to keep that in mind), and this is what will allow me to assemble the transcriptome
@@ -598,57 +584,32 @@ But this is massive so let us do in array
 
   #!/bin/bash
   #SBATCH --job-name=gtfing
-  #SBATCH --output=%x.%j.out
-  #SBATCH --error=%x.%j.err
+  #SBATCH --output=%x.%A_%a.out
+  #SBATCH --error=%x.%A_%a.err
   #SBATCH --partition=nocona
-  #SBATCH --array=0-14
+  #SBATCH --array=0-77
   #SBATCH --nodes=1
   #SBATCH --ntasks=1
   
-  cd /lustre/scratch/mhoyosro/project3/RESULTS
+  cd /lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
+  
   export PATH=/lustre/work/mhoyosro/software/stringtie:${PATH}
   
-  FILES=(
-  "molossus/SRR18652231_MM"
-  "molossus/SRR18652230_MM"
-  "myotis/SRR18652217_MM"
-  "myotis/SRR18652218_MM"
-  "myotis/SRR18652219_MM"
-  "phyllostomus/SRR18652128_MM"
-  "phyllostomus/SRR18652129_MM"
-  "phyllostomus/SRR18652130_MM"
-  "phyllostomus/SRR18652131_MM"
-  "phyllostomus/SRR18652132_MM"
-  "pipistrellus/SRR18652220_MM"
-  "rhinolophus/SRR18652180_MM"
-  "rousettus/SRR18652228_MM"
-  "rousettus/SRR18652229_MM"
-  "hipposideros/SRR17418361_MM"
-  )
+  # Array automático de BAM ordenados
+  mapfile -t BAMS < <(find . -name "*_MM.sorted.bam" | sort)
   
-  # Selec the file according to the index of the array
-  BASE=${FILES[$SLURM_ARRAY_TASK_ID]}
+  BAM=${BAMS[$SLURM_ARRAY_TASK_ID]}
+  BASE=${BAM%.sorted.bam}
   
-  # StringTie excution
-  stringtie -o ${BASE}.gtf ${BASE}.sorted.bam
+  echo "BAM:  $BAM"
+  echo "GTF:  ${BASE}.gtf"
+  
+  stringtie -o "${BASE}.gtf" "$BAM"
 
 
-6) Get the annotation data from David
--------------------------------------
+5) Get the annotation data
+---------------------------
 
-David ya tiene las anotaciones de todos los genomas, así que no tengo que anotarlos. Gracias
+Estos datos son proveidos por mi laboratorio
 
-| mHipLar1.2.pri.TOGA.bed.gz
-| mMolMol1.2.pri.TOGA.bed.gz
-| mMyoMyo1.6.pri.TOGA.bed.gz
-| mPhyDis1.3.pri.TOGA.bed.gz
-| mPipKuh1.2.pri.TOGA.bed.gz
-| mRhiFer1.5.pri.TOGA.bed.gz
-| mRouAeg1.4.pri.TOGA.bed.gz
-
-# put the anotation data inside of this directory
-``/lustre/scratch/mhoyosro/project3/ANNOTATIONS``
-
-# unzip the files: 
-``gzip -d *.gz``
 
