@@ -613,3 +613,130 @@ But this is massive so let us do in array
 Estos datos son proveidos por mi laboratorio
 
 
+
+6) Expandir las anotaciones
+----------------------------
+
+Qué hace el código:
+
+Entra a /lustre/scratch/mhoyosro/project3/ANNOTATIONS.
+Toma cada archivo *.TOGA.bed de los 15 genomas.
+Lee las columnas BED12:
+columna 1: cromosoma/scaffold,
+columna 2: inicio del transcrito,
+columna 4: nombre/ID del transcrito,
+columna 5: score,
+columna 6: hebra,
+columna 10: número de bloques/exones,
+columna 11: tamaños de exones,
+columna 12: posiciones relativas de exones.
+Expande cada transcrito BED12 en líneas individuales de exones.
+Calcula coordenadas absolutas de cada exón:
+
+exon_start = transcript_start + relative_exon_start
+exon_end   = exon_start + exon_size
+
+Genera un archivo nuevo por genoma en:
+
+EXPANDED_NEW/
+No sobrescribe tus archivos viejos.
+Divide el ID original por # para dejar separados los campos informativos en columnas.
+
+Produce una estructura tipo BED/GFF simplificada:
+
+chrom start end . score strand TOGA exon . info...
+
+
+
+.. code-block:: bash
+
+  nano make_expandedexons.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=EXONS
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+
+  set -euo pipefail
+
+  cd /lustre/scratch/mhoyosro/project3/ANNOTATIONS
+  
+  files=(
+  "mEonSpe1.2.hap1.TOGA.bed"
+  "mHipLar1.2.pri.TOGA.bed"
+  "mMinSch1.1.hap1.TOGA.bed"
+  "mMolMol1.2.pri.TOGA.bed"
+  "mMyoDau2.1.pri.TOGA.bed"
+  "mMyoMyo1.6.pri.TOGA.bed"
+  "mMyoMys1.1.hap1.TOGA.bed"
+  "mPhyDis1.3.pri.TOGA.bed"
+  "mPipKuh1.2.pri.TOGA.bed"
+  "mPleAur1.1.pri.TOGA.bed"
+  "mRhiFer1.5.pri.TOGA.bed"
+  "mRhiHip1.1.hap1.TOGA.bed"
+  "mRhiSin3.1.pri.TOGA.bed"
+  "mRouAeg1.4.pri.TOGA.bed"
+  "mVesMur1.1.pri.TOGA.bed"
+  )
+  
+  for file in "${files[@]}"; do
+      echo "======================================"
+      echo "Procesando: $file"
+  
+      if [[ ! -f "$file" ]]; then
+          echo "ERROR: no existe $file"
+          exit 1
+      fi
+  
+      output="${file%.bed}_expandedexons.bed"
+  
+      awk 'BEGIN{OFS="\t"}
+      NF >= 12 {
+          chrom=$1
+          tx_start=$2
+          name=$4
+          score=$5
+          strand=$6
+          blockCount=$10
+          blockSizes=$11
+          blockStarts=$12
+  
+          sub(/,$/, "", blockSizes)
+          sub(/,$/, "", blockStarts)
+  
+          n1=split(blockSizes, sizes, ",")
+          n2=split(blockStarts, starts, ",")
+  
+          if (n1 != blockCount || n2 != blockCount) {
+              print "ERROR_blockCount_mismatch", name, blockCount, n1, n2 > "/dev/stderr"
+              next
+          }
+  
+          for (i=1; i<=blockCount; i++) {
+              exon_start = tx_start + starts[i]
+              exon_end   = exon_start + sizes[i]
+              exon_id = name "_exon" i
+  
+              n = split(exon_id, parts, "#")
+  
+              line = chrom OFS exon_start OFS exon_end OFS "." OFS score OFS strand OFS "TOGA" OFS "exon" OFS "."
+  
+              for (j=1; j<=n; j++) {
+                  line = line OFS parts[j]
+              }
+  
+              print line
+          }
+      }' "$file" > "$output"
+  
+      echo "Creado: $output"
+      wc -l "$output"
+      awk '{print "Columnas primera línea:", NF; exit}' "$output"
+  done
+  
+  echo "TODOS LOS ARCHIVOS FUERON PROCESADOS"
