@@ -610,8 +610,25 @@ But this is massive so let us do in array
 5) Get the annotation data
 ---------------------------
 
-Estos datos son proveidos por mi laboratorio
+Estos datos son proveidos por mi laboratorio:
 
+| *Eonycteris_spelaea*        ---> mEonSpe1.2.hap1.TOGA.bed
+| *Hipposideros_larvatus*     ---> mHipLar1.2.pri.TOGA.bed
+| *Miniopterus_schreibersii*  ---> mMinSch1.1.hap1.TOGA.bed
+| *Molossus_molossus*         ---> mMolMol1.2.pri.TOGA.bed
+| *Myotis_daubentonii*        ---> mMyoDau2.1.pri.TOGA.bed
+| *Myotis_myotis*             ---> mMyoMyo1.6.pri.TOGA.bed
+| *Myotis_mystacinus*         ---> mMyoMys1.1.hap1.TOGA.bed
+| *Phyllostomus_discolor*     ---> mPhyDis1.3.pri.TOGA.bed
+| *Pipistrellus_kuhlii*       ---> mPipKuh1.2.pri.TOGA.bed
+| *Plecotus_auritus*          ---> mPleAur1.1.pri.TOGA.bed
+| *Rhinolophus_ferrumequinum* ---> mRhiFer1.5.pri.TOGA.bed
+| *Rhinolophus_hipposideros*  ---> mRhiHip1.1.hap1.TOGA.bed
+| *Rhinolophus_sinicus*       ---> mRhiSin3.1.pri.TOGA.bed
+| *Rousettus_aegyptiacus*     ---> mRouAeg1.4.pri.TOGA.bed
+| *Vespertilio_murinus*       ---> mVesMur1.1.pri.TOGA.bed
+
+estos datos estan dentro de /lustre/scratch/mhoyosro/project3/ANNOTATIONS
 
 
 6) Expandir las anotaciones
@@ -619,32 +636,34 @@ Estos datos son proveidos por mi laboratorio
 
 Qué hace el código:
 
-Entra a /lustre/scratch/mhoyosro/project3/ANNOTATIONS.
-Toma cada archivo *.TOGA.bed de los 15 genomas.
-Lee las columnas BED12:
-columna 1: cromosoma/scaffold,
-columna 2: inicio del transcrito,
-columna 4: nombre/ID del transcrito,
-columna 5: score,
-columna 6: hebra,
-columna 10: número de bloques/exones,
-columna 11: tamaños de exones,
-columna 12: posiciones relativas de exones.
-Expande cada transcrito BED12 en líneas individuales de exones.
-Calcula coordenadas absolutas de cada exón:
+El código entra a ``/lustre/scratch/mhoyosro/project3/ANNOTATIONS``
+Toma cada archivo ``*.TOGA.bed`` de los 15 genomas.
 
-exon_start = transcript_start + relative_exon_start
-exon_end   = exon_start + exon_size
+· Lee las columnas BED12:
 
-Genera un archivo nuevo por genoma en:
+| columna 1: cromosoma/scaffold,
+| columna 2: inicio del transcrito,
+| columna 4: nombre/ID del transcrito,
+| columna 5: score,
+| columna 6: hebra,
+| columna 10: número de bloques/exones,
+| columna 11: tamaños de exones,
+| columna 12: posiciones relativas de exones.
 
-EXPANDED_NEW/
-No sobrescribe tus archivos viejos.
-Divide el ID original por # para dejar separados los campos informativos en columnas.
+· Expande cada transcrito BED12 en líneas individuales de exones.
 
-Produce una estructura tipo BED/GFF simplificada:
+· Calcula coordenadas absolutas de cada exón:
 
-chrom start end . score strand TOGA exon . info...
+| exon_start = transcript_start + relative_exon_start
+| exon_end   = exon_start + exon_size
+
+· Genera un archivo nuevo por genoma :
+
+· Divide el ID original por # para dejar separados los campos informativos en columnas.
+
+· Produce una estructura tipo BED/GFF simplificada:
+
+``chrom start end . score strand TOGA exon . info...``
 
 
 
