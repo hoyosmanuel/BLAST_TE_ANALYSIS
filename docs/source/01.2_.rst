@@ -1,0 +1,572 @@
+Miniprot only aligns proteins against a genome in FASTA format. 
+So we’re going to convert each GTF obtained with StringTie into FASTA, and then search for the RepeatPeps peptides in those FASTA files
+
+1. Extract the exons from the GTF 
+--------------------
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano extractfromGTF_all.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=fromGTF
+  #SBATCH --output=%x.%A_%a.out
+  #SBATCH --error=%x.%A_%a.err
+  #SBATCH --partition=nocona
+  #SBATCH --array=0-77
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  
+  gtf=/lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
+  out=/lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO
+  
+  mkdir -p "$out"
+  
+  mapfile -t gtfs < <(find "$gtf" -name "*_MM.gtf" | sort)
+  
+  input=${gtfs[$SLURM_ARRAY_TASK_ID]}
+  
+  species=$(basename "$(dirname "$input")")
+  base=$(basename "$input" .gtf)
+  
+  mkdir -p "$out/$species"
+  
+  echo "INPUT GTF: $input"
+  echo "SPECIES: $species"
+  echo "OUTPUT: $out/$species/${base}_exones.gtf"
+  
+  awk '$3 == "exon"' "$input" > "$out/$species/${base}_exones.gtf"
+  
+.. code-block:: bash
+  
+  chmod +x extractfromGTF_all.sh
+  sbatch extractfromGTF_all.sh
+
+.. code-block:: bash
+
+  find /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO \
+  -name "*_exones.gtf" | wc -l
+
+debe dar 78
+
+
+
+2. Extract the exons from the GTF 
+----------------------------------
+
+#Hice esto para deshacerme de la parte que dice "transcrito", necesito cada pedazo sin concatener para buscar ahí los TEs
+nano extractfromGTF.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=fromGTF
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=36
+  
+  gtf=/lustre/scratch/mhoyosro/project3/RESULTS
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/hipposideros
+  awk '$3 == "exon"' $gtf/hipposideros/SRR17418361_MM.gtf > SRR17418361_MM_exones.gtf
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/molossus
+  awk '$3 == "exon"' $gtf/molossus/SRR18652230_MM.gtf > SRR18652230_MM_exones.gtf
+  awk '$3 == "exon"' $gtf/molossus/SRR18652231_MM.gtf > SRR18652231_MM_exones.gtf
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/myotis
+  awk '$3 == "exon"' $gtf/myotis/SRR18652217_MM.gtf > SRR18652217_MM_exones.gtf
+  awk '$3 == "exon"' $gtf/myotis/SRR18652218_MM.gtf > SRR18652218_MM_exones.gtf
+  awk '$3 == "exon"' $gtf/myotis/SRR18652219_MM.gtf > SRR18652219_MM_exones.gtf
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/phyllostomus
+  awk '$3 == "exon"' $gtf/phyllostomus/SRR18652128_MM.gtf > SRR18652128_MM_exones.gtf
+  awk '$3 == "exon"' $gtf/phyllostomus/SRR18652129_MM.gtf > SRR18652129_MM_exones.gtf
+  awk '$3 == "exon"' $gtf/phyllostomus/SRR18652130_MM.gtf > SRR18652130_MM_exones.gtf
+  awk '$3 == "exon"' $gtf/phyllostomus/SRR18652131_MM.gtf > SRR18652131_MM_exones.gtf
+  awk '$3 == "exon"' $gtf/phyllostomus/SRR18652132_MM.gtf > SRR18652132_MM_exones.gtf
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/pipistrellus
+  awk '$3 == "exon"' $gtf/pipistrellus/SRR18652220_MM.gtf > SRR18652220_MM_exones.gtf
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rhinolophus
+  awk '$3 == "exon"' $gtf/rhinolophus/SRR18652180_MM.gtf > SRR18652180_MM_exones.gtf
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rousettus
+  awk '$3 == "exon"' $gtf/rousettus/SRR18652228_MM.gtf > SRR18652228_MM_exones.gtf
+  awk '$3 == "exon"' $gtf/rousettus/SRR18652229_MM.gtf > SRR18652229_MM_exones.gtf
+
+
+3. Pass the GTF exons to BED
+----------------------------------
+
+.. code-block:: bash
+
+  nano GTF2BED.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=tobed
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=36
+  
+  gtf=/lustre/scratch/mhoyosro/project3/RESULTS
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/hipposideros
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR17418361_MM_exones.gtf > SRR17418361_MM_exones.bed
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/molossus
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652230_MM_exones.gtf > SRR18652230_MM_exones.bed
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652231_MM_exones.gtf > SRR18652231_MM_exones.bed
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/myotis
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652217_MM_exones.gtf > SRR18652217_MM_exones.bed
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652218_MM_exones.gtf > SRR18652218_MM_exones.bed
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652219_MM_exones.gtf > SRR18652219_MM_exones.bed
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/phyllostomus
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652128_MM_exones.gtf > SRR18652128_MM_exones.bed
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652129_MM_exones.gtf > SRR18652129_MM_exones.bed
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652130_MM_exones.gtf > SRR18652130_MM_exones.bed
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652131_MM_exones.gtf > SRR18652131_MM_exones.bed
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652132_MM_exones.gtf > SRR18652132_MM_exones.bed
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/pipistrellus
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652220_MM_exones.gtf > SRR18652220_MM_exones.bed
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rhinolophus
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652180_MM_exones.gtf > SRR18652180_MM_exones.bed
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rousettus
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652228_MM_exones.gtf > SRR18652228_MM_exones.bed
+  awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $4-1, $5, $9, ".", $7}' SRR18652229_MM_exones.gtf > SRR18652229_MM_exones.bed
+
+
+
+4. Pass the BED exons to fastA
+----------------------------------
+#Estoy haciendo toda esta vuelta porque necesito los encabezados para la trazabilidad 
+
+.. code-block:: bash
+  
+  nano BED2fasta.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=tofast
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=36
+  
+  . /home/mhoyosro/conda/etc/profile.d/conda.sh
+  conda activate alineador
+  export PATH=/lustre/work/mhoyosro/software/gffread:${PATH}
+  ref=/lustre/scratch/mhoyosro/project3/GENOMES
+  myotis_reference="$ref/mMyoMyo1.6.pri.fa"
+  molossus_reference="$ref/mMolMol1.2.pri.fa"
+  rousettus_reference="$ref/mRouAeg1.4.pri.fa"
+  pipistrellus_reference="$ref/mPipKuh1.2.pri.fa"
+  rhinolophus_reference="$ref/mRhiFer1.5.pri.fa"
+  phyllostomus_reference="$ref/mPhyDis1.3.pri.fa"
+  hipposideros_reference="$ref/mHipLar1.2.pri.fa"
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/hipposideros
+  bedtools getfasta -fi $hipposideros_reference -bed SRR17418361_MM_exones.bed -name > SRR17418361_MM_exones.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/molossus
+  bedtools getfasta -fi $molossus_reference -bed SRR18652230_MM_exones.bed -name > SRR18652230_MM_exones.fa
+  bedtools getfasta -fi $molossus_reference -bed SRR18652231_MM_exones.bed -name > SRR18652231_MM_exones.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/myotis
+  bedtools getfasta -fi $myotis_reference -bed SRR18652217_MM_exones.bed -name > SRR18652217_MM_exones.fa
+  bedtools getfasta -fi $myotis_reference -bed SRR18652218_MM_exones.bed -name > SRR18652218_MM_exones.fa
+  bedtools getfasta -fi $myotis_reference -bed SRR18652219_MM_exones.bed -name > SRR18652219_MM_exones.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/phyllostomus
+  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652128_MM_exones.bed -name > SRR18652128_MM_exones.fa
+  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652129_MM_exones.bed -name > SRR18652129_MM_exones.fa
+  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652130_MM_exones.bed -name > SRR18652130_MM_exones.fa
+  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652131_MM_exones.bed -name > SRR18652131_MM_exones.fa
+  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652132_MM_exones.bed -name > SRR18652132_MM_exones.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/pipistrellus
+  bedtools getfasta -fi $pipistrellus_reference -bed SRR18652220_MM_exones.bed -name > SRR18652220_MM_exones.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rhinolophus
+  bedtools getfasta -fi $rhinolophus_reference -bed SRR18652180_MM_exones.bed -name > SRR18652180_MM_exones.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rousettus
+  bedtools getfasta -fi $rousettus_reference -bed SRR18652228_MM_exones.bed -name > SRR18652228_MM_exones.fa
+  bedtools getfasta -fi $rousettus_reference -bed SRR18652229_MM_exones.bed -name > SRR18652229_MM_exones.fa
+
+
+
+
+5. Fix the fastA header
+----------------------------------
+
+.. code-block:: bash
+  
+  nano headers.sh
+
+.. code-block:: bash
+  
+  #!/bin/bash
+  #SBATCH --job-name=headr
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=36
+  
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/hipposideros
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR17418361_MM_exones.fa > SRR17418361_MM_exones.fixed.fa
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/molossus
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652230_MM_exones.fa > SRR18652230_MM_exones.fixed.fa
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652231_MM_exones.fa > SRR18652231_MM_exones.fixed.fa
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/myotis
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652217_MM_exones.fa > SRR18652217_MM_exones.fixed.fa
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652218_MM_exones.fa > SRR18652218_MM_exones.fixed.fa
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652219_MM_exones.fa > SRR18652219_MM_exones.fixed.fa
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/phyllostomus
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652128_MM_exones.fa > SRR18652128_MM_exones.fixed.fa
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652129_MM_exones.fa > SRR18652129_MM_exones.fixed.fa
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652130_MM_exones.fa > SRR18652130_MM_exones.fixed.fa
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652131_MM_exones.fa > SRR18652131_MM_exones.fixed.fa
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652132_MM_exones.fa > SRR18652132_MM_exones.fixed.fa
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/pipistrellus
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652220_MM_exones.fa > SRR18652220_MM_exones.fixed.fa
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rhinolophus
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652180_MM_exones.fa > SRR18652180_MM_exones.fixed.fa
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rousettus
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652228_MM_exones.fa > SRR18652228_MM_exones.fixed.fa
+  awk '/^>/{match($0, /::([^:]+:[0-9]+-[0-9]+)/, coords); match($0, /transcript_id "([^"]+)"/, tid); match($0, /exon_number "([^"]+)"/, exon); print ">" coords[1] "___\"" tid[1] "\"___exon_number:\"" exon[1] "\""; next}1' SRR18652229_MM_exones.fa > SRR18652229_MM_exones.fixed.fa
+
+
+
+
+6. MINIPROT AGAINST the MM.FASTA
+----------------------------------
+
+#Index the FASTAS with MINIPROT 
+
+.. code-block:: bash
+
+  nano mini_index2.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=miniprot2
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=16
+  #SBATCH --mem=128G
+  #SBATCH --time=48:00:00
+  
+  export PATH=/lustre/work/mhoyosro/software/miniprot:${PATH}
+   
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/hipposideros
+  miniprot -t16 -d SRR17418361.mpi SRR17418361_MM_exones.fixed.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/molossus
+  miniprot -t16 -d SRR18652230.mpi SRR18652230_MM_exones.fixed.fa
+  miniprot -t16 -d SRR18652231.mpi SRR18652231_MM_exones.fixed.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/myotis
+  miniprot -t16 -d SRR18652217.mpi SRR18652217_MM_exones.fixed.fa
+  miniprot -t16 -d SRR18652218.mpi SRR18652218_MM_exones.fixed.fa
+  miniprot -t16 -d SRR18652219.mpi SRR18652219_MM_exones.fixed.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/phyllostomus
+  miniprot -t16 -d SRR18652128.mpi SRR18652128_MM_exones.fixed.fa
+  miniprot -t16 -d SRR18652129.mpi SRR18652129_MM_exones.fixed.fa
+  miniprot -t16 -d SRR18652130.mpi SRR18652130_MM_exones.fixed.fa
+  miniprot -t16 -d SRR18652131.mpi SRR18652131_MM_exones.fixed.fa
+  miniprot -t16 -d SRR18652132.mpi SRR18652132_MM_exones.fixed.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/pipistrellus
+  miniprot -t16 -d SRR18652220.mpi SRR18652220_MM_exones.fixed.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rhinolophus
+  miniprot -t16 -d SRR18652180.mpi SRR18652180_MM_exones.fixed.fa
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rousettus
+  miniprot -t16 -d SRR18652228.mpi SRR18652228_MM_exones.fixed.fa
+  miniprot -t16 -d SRR18652229.mpi SRR18652229_MM_exones.fixed.fa
+
+
+#Aling the derived TE-proteins to the genome
+
+.. code-block:: bash
+
+  nano mini_aling2.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=miniprot
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=16
+  #SBATCH --mem=128G
+  #SBATCH --time=48:00:00
+  
+  lib=/lustre/scratch/mhoyosro/project3/RepeatPeps.lib
+  export PATH=/lustre/work/mhoyosro/software/miniprot:${PATH}
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/hipposideros
+  miniprot -Iut16 --gff SRR17418361.mpi $lib > TEs_in_hLar_SRR17418361.gff
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/molossus
+  miniprot -Iut16 --gff SRR18652230.mpi $lib > TEs_in_mMol_SRR18652230.gff
+  miniprot -Iut16 --gff SRR18652231.mpi $lib > TEs_in_mMol_SRR18652231.gff
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/myotis
+  miniprot -Iut16 --gff SRR18652217.mpi $lib > TEs_in_mMyo_SRR18652217.gff
+  miniprot -Iut16 --gff SRR18652218.mpi $lib > TEs_in_mMyo_SRR18652218.gff
+  miniprot -Iut16 --gff SRR18652219.mpi $lib > TEs_in_mMyo_SRR18652219.gff
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/phyllostomus
+  miniprot -Iut16 --gff SRR18652128.mpi $lib > TEs_in_pDis_SRR18652128.gff
+  miniprot -Iut16 --gff SRR18652129.mpi $lib > TEs_in_pDis_SRR18652129.gff
+  miniprot -Iut16 --gff SRR18652130.mpi $lib > TEs_in_pDis_SRR18652130.gff
+  miniprot -Iut16 --gff SRR18652131.mpi $lib > TEs_in_pDis_SRR18652131.gff
+  miniprot -Iut16 --gff SRR18652132.mpi $lib > TEs_in_pDis_SRR18652132.gff
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/pipistrellus
+  miniprot -Iut16 --gff SRR18652220.mpi $lib > TEs_in_pKuh_SRR18652220.gff
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rhinolophus
+  miniprot -Iut16 --gff SRR18652180.mpi $lib > TEs_in_rFer_SRR18652180.gff
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rousettus
+  miniprot -Iut16 --gff SRR18652228.mpi $lib > TEs_in_rAeg_SRR18652228.gff
+  miniprot -Iut16 --gff SRR18652229.mpi $lib > TEs_in_rAeg_SRR18652229.gff
+
+
+
+7. Filter the miniprot results using the "identity" value from the GFF output generated by miniprot
+------------------------------------------------------------------------------------------------------
+
+#We will keep only those alignments with an identity greater than or equal to 0.6
+
+.. code-block:: bash
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/hipposideros
+  for f in TEs_in_hLar_SRR17418361.gff; do
+    echo "filtering $f ..."
+    awk 'BEGIN{FS="\t"} 
+      /^#/ {print; next} 
+      /Identity=/ { 
+        match($9, /Identity=([0-9.]+)/, id_val); 
+        if (id_val[1] >= 0.6) {
+          match($9, /ID=([^;]+)/, id_name);
+          keep[id_name[1]] = 1;
+          print;
+        }
+      }
+      !/Identity=/ && $3 != "mRNA" {
+        match($9, /Parent=([^;]+)/, parent);
+        if (parent[1] in keep) print;
+      }
+    ' "$f" > "${f%.gff}.60percent.gff"
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/molossus
+  for f in TEs_in_mMol_SRR18652230.gff TEs_in_mMol_SRR18652231.gff; do
+    echo "filtering $f ..."
+    awk 'BEGIN{FS="\t"} 
+      /^#/ {print; next} 
+      /Identity=/ { 
+        match($9, /Identity=([0-9.]+)/, id_val); 
+        if (id_val[1] >= 0.6) {
+          match($9, /ID=([^;]+)/, id_name);
+          keep[id_name[1]] = 1;
+          print;
+        }
+      }
+      !/Identity=/ && $3 != "mRNA" {
+        match($9, /Parent=([^;]+)/, parent);
+        if (parent[1] in keep) print;
+      }
+    ' "$f" > "${f%.gff}.60percent.gff"
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/myotis
+  for f in TEs_in_mMyo_SRR18652217.gff TEs_in_mMyo_SRR18652218.gff TEs_in_mMyo_SRR18652219.gff; do
+    echo "filtering $f ..."
+    awk 'BEGIN{FS="\t"} 
+      /^#/ {print; next} 
+      /Identity=/ { 
+        match($9, /Identity=([0-9.]+)/, id_val); 
+        if (id_val[1] >= 0.6) {
+          match($9, /ID=([^;]+)/, id_name);
+          keep[id_name[1]] = 1;
+          print;
+        }
+      }
+      !/Identity=/ && $3 != "mRNA" {
+        match($9, /Parent=([^;]+)/, parent);
+        if (parent[1] in keep) print;
+      }
+    ' "$f" > "${f%.gff}.60percent.gff"
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/phyllostomus
+  for f in TEs_in_pDis_SRR18652128.gff  TEs_in_pDis_SRR18652129.gff  TEs_in_pDis_SRR18652130.gff  TEs_in_pDis_SRR18652131.gff TEs_in_pDis_SRR18652132.gff; do
+    echo "filtering $f ..."
+    awk 'BEGIN{FS="\t"} 
+      /^#/ {print; next} 
+      /Identity=/ { 
+        match($9, /Identity=([0-9.]+)/, id_val); 
+        if (id_val[1] >= 0.6) {
+          match($9, /ID=([^;]+)/, id_name);
+          keep[id_name[1]] = 1;
+          print;
+        }
+      }
+      !/Identity=/ && $3 != "mRNA" {
+        match($9, /Parent=([^;]+)/, parent);
+        if (parent[1] in keep) print;
+      }
+    ' "$f" > "${f%.gff}.60percent.gff"
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/pipistrellus
+  for f in TEs_in_pKuh_SRR18652220.gff; do
+    echo "filtering $f ..."
+    awk 'BEGIN{FS="\t"} 
+      /^#/ {print; next} 
+      /Identity=/ { 
+        match($9, /Identity=([0-9.]+)/, id_val); 
+        if (id_val[1] >= 0.6) {
+          match($9, /ID=([^;]+)/, id_name);
+          keep[id_name[1]] = 1;
+          print;
+        }
+      }
+      !/Identity=/ && $3 != "mRNA" {
+        match($9, /Parent=([^;]+)/, parent);
+        if (parent[1] in keep) print;
+      }
+    ' "$f" > "${f%.gff}.60percent.gff"
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rhinolophus
+  
+  for f in TEs_in_rFer_SRR18652180.gff; do
+    echo "filtering $f ..."
+    awk 'BEGIN{FS="\t"} 
+      /^#/ {print; next} 
+      /Identity=/ { 
+        match($9, /Identity=([0-9.]+)/, id_val); 
+        if (id_val[1] >= 0.6) {
+          match($9, /ID=([^;]+)/, id_name);
+          keep[id_name[1]] = 1;
+          print;
+        }
+      }
+      !/Identity=/ && $3 != "mRNA" {
+        match($9, /Parent=([^;]+)/, parent);
+        if (parent[1] in keep) print;
+      }
+    ' "$f" > "${f%.gff}.60percent.gff"
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rousettus
+  for f in  TEs_in_rAeg_SRR18652228.gff   TEs_in_rAeg_SRR18652229.gff; do
+    echo "filtering $f ..."
+    awk 'BEGIN{FS="\t"} 
+      /^#/ {print; next} 
+      /Identity=/ { 
+        match($9, /Identity=([0-9.]+)/, id_val); 
+        if (id_val[1] >= 0.6) {
+          match($9, /ID=([^;]+)/, id_name);
+          keep[id_name[1]] = 1;
+          print;
+        }
+      }
+      !/Identity=/ && $3 != "mRNA" {
+        match($9, /Parent=([^;]+)/, parent);
+        if (parent[1] in keep) print;
+      }
+    ' "$f" > "${f%.gff}.60percent.gff"
+  done
+
+
+
+
+
+
+
+8. Clean the gff files
+--------------------------
+
+#We need to get rid of the ##PAF lines
+
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/hipposideros
+  for f in TEs_in_hLar_SRR17418361.60percent.gff ; do 
+    grep -v "^##PAF" $f > ${f%.gff}_clean.gff
+  done
+  
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/molossus
+  for f in TEs_in_mMol_SRR18652230.60percent.gff  TEs_in_mMol_SRR18652231.60percent.gff; do 
+    grep -v "^##PAF" $f > ${f%.gff}_clean.gff
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/myotis
+  for f in  TEs_in_mMyo_SRR18652217.60percent.gff  TEs_in_mMyo_SRR18652218.60percent.gff  TEs_in_mMyo_SRR18652219.60percent.gff; do 
+    grep -v "^##PAF" $f > ${f%.gff}_clean.gff
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/phyllostomus
+  for f in TEs_in_pDis_SRR18652128.60percent.gff TEs_in_pDis_SRR18652129.60percent.gff TEs_in_pDis_SRR18652130.60percent.gff TEs_in_pDis_SRR18652131.60percent.gff TEs_in_pDis_SRR18652132.60percent.gff; do 
+    grep -v "^##PAF" $f > ${f%.gff}_clean.gff
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/pipistrellus
+  for f in TEs_in_pKuh_SRR18652220.60percent.gff; do 
+    grep -v "^##PAF" $f > ${f%.gff}_clean.gff
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rhinolophus
+  for f in TEs_in_rFer_SRR18652180.60percent.gff; do 
+    grep -v "^##PAF" $f > ${f%.gff}_clean.gff
+  done
+  
+  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rousettus
+  for f in TEs_in_rAeg_SRR18652228.60percent.gff  TEs_in_rAeg_SRR18652229.60percent.gff; do 
+    grep -v "^##PAF" $f > ${f%.gff}_clean.gff
+  done
+  
+
+
+
