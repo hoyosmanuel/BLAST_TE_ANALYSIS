@@ -81,7 +81,7 @@ En este punto tengo los insumos necesarios para reproducir estos resultados con 
   export PATH=/lustre/work/mhoyosro/software/stringtie:${PATH}
   
   ori=/lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
-  out=/lustre/scratch/mhoyosro/project3/PLANCE
+  out=/lustre/scratch/mhoyosro/project3/ANALISIS_2026
   
   mkdir -p "$out"
   
@@ -115,3 +115,8 @@ En este punto tengo los insumos necesarios para reproducir estos resultados con 
   done
   
   echo "DONE"
+
+.. code-block:: bash
+
+  chmod +x merge_RNA_gtf_by_species.sh
+  sbatch merge_RNA_gtf_by_species.sh
