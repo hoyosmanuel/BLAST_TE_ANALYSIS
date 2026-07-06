@@ -120,3 +120,74 @@ En este punto tengo los insumos necesarios para reproducir estos resultados con 
 
   chmod +x merge_RNA_gtf_by_species.sh
   sbatch merge_RNA_gtf_by_species.sh
+
+
+CORRECCION
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano merge_RNA_gtf_by_species.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=gtfR
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=16
+  #SBATCH --mem=128G
+  #SBATCH --time=48:00:00
+  
+  set -euo pipefail
+  
+  export PATH=/lustre/work/mhoyosro/software/stringtie:${PATH}
+  
+  ori=/lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
+  out=/lustre/scratch/mhoyosro/project3/ANALISIS_2026
+  
+  mkdir -p "$out"
+  
+  for species_dir in "$ori"/*
+  do
+      species=$(basename "$species_dir")
+      outdir="$out/$species"
+  
+      mkdir -p "$outdir"
+  
+      list="$outdir/${species}_list.txt"
+  
+      find "$species_dir" -maxdepth 1 -name "*_MM.gtf" | sort > "$list"
+  
+      n=$(wc -l < "$list")
+  
+      echo "======================================"
+      echo "SPECIES: $species"
+      echo "N GTF: $n"
+      echo "LIST: $list"
+  
+      if [[ "$n" -eq 0 ]]; then
+          echo "ERROR: no GTF found for $species"
+          exit 1
+  
+      elif [[ "$n" -eq 1 ]]; then
+          gtf=$(cat "$list")
+          cp "$gtf" "$outdir/RNA_${species}.gtf"
+          echo "Copied single GTF:"
+          echo "$gtf"
+          echo "to:"
+          echo "$outdir/RNA_${species}.gtf"
+  
+      else
+          stringtie --merge -p 10 \
+              -o "$outdir/RNA_${species}.gtf" \
+              "$list"
+  
+          echo "Merged GTFs to:"
+          echo "$outdir/RNA_${species}.gtf"
+      fi
+  done
+  
+  echo "DONE"
