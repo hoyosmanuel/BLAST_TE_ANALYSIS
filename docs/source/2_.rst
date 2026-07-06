@@ -104,17 +104,124 @@ debe dar 78
 
 
 
-3. Pass the GTF exons to BED
+3. Pass the BED exons to fastA
 ----------------------------------
 
 .. code-block:: bash
 
-  --
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano BED2fasta_all.sh
 
 .. code-block:: bash
 
- --
+  #!/bin/bash
+  #SBATCH --job-name=tofast
+  #SBATCH --output=%x.%A_%a.out
+  #SBATCH --error=%x.%A_%a.err
+  #SBATCH --partition=nocona
+  #SBATCH --array=0-77
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  
+  . /home/mhoyosro/conda/etc/profile.d/conda.sh
+  conda activate alineador
+  
+  ref=/lustre/scratch/mhoyosro/project3/REF_GENOMES
+  base_dir=/lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO
+  
+  mapfile -t beds < <(find "$base_dir" \
+      -path "*/viejo/*" -prune -o \
+      -name "*_exones.bed" -print | sort)
+  
+  bed=${beds[$SLURM_ARRAY_TASK_ID]}
+  species=$(basename "$(dirname "$bed")")
+  fasta=${bed%.bed}.fa
+  
+  case "$species" in
+      Eonycteris_spelaea)
+          reference="$ref/mEonSpe1.2.hap1.fa"
+          ;;
+      Miniopterus_schreibersii)
+          reference="$ref/mMinSch1.1.hap1.fa"
+          ;;
+      Molossus_molossus)
+          reference="$ref/mMolMol1.2.pri.fa"
+          ;;
+      Myotis_daubentonii)
+          reference="$ref/mMyoDau2.1.pri.fa"
+          ;;
+      Myotis_myotis)
+          reference="$ref/mMyoMyo1.6.pri.fa"
+          ;;
+      Myotis_mystacinus)
+          reference="$ref/mMyoMys1.1.hap1.fa"
+          ;;
+      Phyllostomus_discolor)
+          reference="$ref/mPhyDis1.3.pri.fa"
+          ;;
+      Pipistrellus_kuhlii)
+          reference="$ref/mPipKuh1.2.pri.fa"
+          ;;
+      Pipistrellus_pygmaeus)
+          reference="$ref/mPipKuh1.2.pri.fa"
+          ;;
+      Plecotus_auritus)
+          reference="$ref/mPleAur1.1.pri.fa"
+          ;;
+      Rhinolophus_ferrumequinum)
+          reference="$ref/mRhiFer1.5.pri.fa"
+          ;;
+      Rhinolophus_hipposideros)
+          reference="$ref/mRhiHip1.1.hap1.fa"
+          ;;
+      Rhinolophus_sinicus)
+          reference="$ref/mRhiSin3.1.pri.fa"
+          ;;
+      Rousettus_aegyptiacus)
+          reference="$ref/mRouAeg1.4.pri.fa"
+          ;;
+      Vespertilio_murinus)
+          reference="$ref/mVesMur1.1.pri.fa"
+          ;;
+      *)
+          echo "ERROR: especie no reconocida: $species"
+          exit 1
+          ;;
+  esac
+  
+  echo "BED:       $bed"
+  echo "SPECIES:   $species"
+  echo "REFERENCE: $reference"
+  echo "FASTA:     $fasta"
+  
+  if [[ ! -f "$bed" ]]; then
+      echo "ERROR: no existe BED: $bed"
+      exit 1
+  fi
+  
+  if [[ ! -f "$reference" ]]; then
+      echo "ERROR: no existe referencia: $reference"
+      exit 1
+  fi
+  
+  bedtools getfasta -fi "$reference" -bed "$bed" -name > "$fasta"
+  
+  echo "DONE"
 
+.. code-block:: bash
+
+  chmod +x BED2fasta_all.sh
+  sbatch BED2fasta_all.sh
+  
+.. code-block:: bash
+
+  find /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO \
+  -path "*/viejo/*" -prune -o \
+  -name "*_exones.fa" -print | wc -l
+  
+  find /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO \
+  -path "*/viejo/*" -prune -o \
+  -name "*_exones.fa" -size 0 -print
 
 
 4. Pass the BED exons to fastA
