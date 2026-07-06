@@ -191,3 +191,8 @@ CORRECCION
   done
   
   echo "DONE"
+
+.. code-block:: bash
+
+  chmod +x merge_RNA_gtf_by_species.sh
+  sbatch merge_RNA_gtf_by_species.sh
