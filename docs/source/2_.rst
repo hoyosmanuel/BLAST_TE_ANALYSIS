@@ -54,14 +54,55 @@ debe dar 78
 
 
 
-2. ----
+2. Pass the GTF exons to BED
 ----------------------------------
-
----
 
 .. code-block:: bash
 
- -----
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano GTF2BED_all.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=tobed
+  #SBATCH --output=%x.%A_%a.out
+  #SBATCH --error=%x.%A_%a.err
+  #SBATCH --partition=nocona
+  #SBATCH --array=0-77
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  
+  base_dir=/lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO
+  
+  mapfile -t gtfs < <(find "$base_dir" \
+      -path "*/viejo/*" -prune -o \
+      -name "*_exones.gtf" -print | sort)
+  
+  gtf=${gtfs[$SLURM_ARRAY_TASK_ID]}
+  bed=${gtf%.gtf}.bed
+  
+  echo "INPUT GTF: $gtf"
+  echo "OUTPUT BED: $bed"
+  
+  awk -F'\t' 'BEGIN{OFS="\t"} {
+      print $1, $4-1, $5, $9, ".", $7
+  }' "$gtf" > "$bed"
+  
+  echo "DONE"
+
+.. code-block:: bash
+
+  chmod +x GTF2BED_all.sh
+  sbatch GTF2BED_all.sh
+
+.. code-block:: bash
+  
+  find /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO \
+  -path "*/viejo/*" -prune -o \
+  -name "*_exones.bed" -print | wc -l
+
+
 
 3. Pass the GTF exons to BED
 ----------------------------------
