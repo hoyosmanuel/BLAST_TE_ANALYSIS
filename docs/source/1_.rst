@@ -140,6 +140,8 @@ Los RNA estarán almacenados en
 
 2) Align the RNAseq data to each genome
 ---------------------------------------
+Aquí se producen los #####_MM.gtf
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
