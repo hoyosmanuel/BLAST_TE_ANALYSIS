@@ -224,64 +224,82 @@ debe dar 78
   -name "*_exones.fa" -size 0 -print
 
 
-4. Pass the BED exons to fastA
+4. Fix the fastA header
 ----------------------------------
-#Estoy haciendo toda esta vuelta porque necesito los encabezados para la trazabilidad 
 
 .. code-block:: bash
   
-  nano BED2fasta.sh
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano fix_headers_all.sh
 
 .. code-block:: bash
 
   #!/bin/bash
-  #SBATCH --job-name=tofast
-  #SBATCH --output=%x.%j.out
-  #SBATCH --error=%x.%j.err
+  #SBATCH --job-name=headr
+  #SBATCH --output=%x.%A_%a.out
+  #SBATCH --error=%x.%A_%a.err
   #SBATCH --partition=nocona
+  #SBATCH --array=0-77
   #SBATCH --nodes=1
-  #SBATCH --ntasks=36
+  #SBATCH --ntasks=1
   
-  . /home/mhoyosro/conda/etc/profile.d/conda.sh
-  conda activate alineador
-  export PATH=/lustre/work/mhoyosro/software/gffread:${PATH}
-  ref=/lustre/scratch/mhoyosro/project3/GENOMES
-  myotis_reference="$ref/mMyoMyo1.6.pri.fa"
-  molossus_reference="$ref/mMolMol1.2.pri.fa"
-  rousettus_reference="$ref/mRouAeg1.4.pri.fa"
-  pipistrellus_reference="$ref/mPipKuh1.2.pri.fa"
-  rhinolophus_reference="$ref/mRhiFer1.5.pri.fa"
-  phyllostomus_reference="$ref/mPhyDis1.3.pri.fa"
-  hipposideros_reference="$ref/mHipLar1.2.pri.fa"
+  base_dir=/lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO
   
-  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/hipposideros
-  bedtools getfasta -fi $hipposideros_reference -bed SRR17418361_MM_exones.bed -name > SRR17418361_MM_exones.fa
+  mapfile -t fastas < <(find "$base_dir" \
+      -path "*/viejo/*" -prune -o \
+      -name "*_exones.fa" -print | sort)
+  
+  fa=${fastas[$SLURM_ARRAY_TASK_ID]}
+  out=${fa%.fa}.fixed.fa
+  
+  echo "INPUT:  $fa"
+  echo "OUTPUT: $out"
+  
+  awk '
+  /^>/ {
+      coords=""
+      tid=""
+      exon=""
+  
+      match($0, /::([^:]+:[0-9]+-[0-9]+)/, c)
+      match($0, /transcript_id "([^"]+)"/, t)
+      match($0, /exon_number "([^"]+)"/, e)
+  
+      coords=c[1]
+      tid=t[1]
+      exon=e[1]
+  
+      if (coords == "" || tid == "" || exon == "") {
+          print "ERROR_header_not_parsed: " $0 > "/dev/stderr"
+          next
+      }
+  
+      print ">" coords "___\"" tid "\"___exon_number:\"" exon "\""
+      next
+  }
+  {
+      print
+  }
+  ' "$fa" > "$out"
+  
+  if [[ ! -s "$out" ]]; then
+      echo "ERROR: output vacío: $out"
+      exit 1
+  fi
+  
+  echo "DONE"
 
-  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/molossus
-  bedtools getfasta -fi $molossus_reference -bed SRR18652230_MM_exones.bed -name > SRR18652230_MM_exones.fa
-  bedtools getfasta -fi $molossus_reference -bed SRR18652231_MM_exones.bed -name > SRR18652231_MM_exones.fa
+.. code-block:: bash
 
-  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/myotis
-  bedtools getfasta -fi $myotis_reference -bed SRR18652217_MM_exones.bed -name > SRR18652217_MM_exones.fa
-  bedtools getfasta -fi $myotis_reference -bed SRR18652218_MM_exones.bed -name > SRR18652218_MM_exones.fa
-  bedtools getfasta -fi $myotis_reference -bed SRR18652219_MM_exones.bed -name > SRR18652219_MM_exones.fa
+  chmod +x fix_headers_all.sh
+  sbatch fix_headers_all.sh
 
-  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/phyllostomus
-  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652128_MM_exones.bed -name > SRR18652128_MM_exones.fa
-  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652129_MM_exones.bed -name > SRR18652129_MM_exones.fa
-  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652130_MM_exones.bed -name > SRR18652130_MM_exones.fa
-  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652131_MM_exones.bed -name > SRR18652131_MM_exones.fa
-  bedtools getfasta -fi $phyllostomus_reference -bed SRR18652132_MM_exones.bed -name > SRR18652132_MM_exones.fa
+.. code-block:: bash
 
-  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/pipistrellus
-  bedtools getfasta -fi $pipistrellus_reference -bed SRR18652220_MM_exones.bed -name > SRR18652220_MM_exones.fa
+  find /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO \
+  -path "*/viejo/*" -prune -o \
+  -name "*_exones.fixed.fa" -print | wc -l
 
-  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rhinolophus
-  bedtools getfasta -fi $rhinolophus_reference -bed SRR18652180_MM_exones.bed -name > SRR18652180_MM_exones.fa
-
-  cd /lustre/scratch/mhoyosro/project3/TRANSCRIPTOME_SOLO/rousettus
-  bedtools getfasta -fi $rousettus_reference -bed SRR18652228_MM_exones.bed -name > SRR18652228_MM_exones.fa
-  bedtools getfasta -fi $rousettus_reference -bed SRR18652229_MM_exones.bed -name > SRR18652229_MM_exones.fa
 
 
 
