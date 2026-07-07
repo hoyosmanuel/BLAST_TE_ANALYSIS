@@ -285,3 +285,90 @@ Y el código actualizado es este:
 
   chmod +x RNA_gtf_to_exon_bed_all.sh
   sbatch RNA_gtf_to_exon_bed_all.sh
+
+3. Crear el FINAL_transcriptome.bed
+--------------------------------------
+
+Aquí vamos a combinar  dos fuentes de exones por especie: TOGA exons + RNA/StringTie exons → FINAL_transcriptome.bed
+
+Pero para lo nuevo hay que hacerlo para 15 especies, usando:
+
+``ANNOTATIONS/*_TOGA_expandedexons.bed``
+``ANALISIS_2026/<species>/RNA_<species>_exones.bed``
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano make_FINAL_transcriptome_all.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=finalBED
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  #SBATCH --mem=16G
+  #SBATCH --time=04:00:00
+  
+  set -euo pipefail
+  
+  ann=/lustre/scratch/mhoyosro/project3/ANNOTATIONS
+  out=/lustre/scratch/mhoyosro/project3/ANALISIS_2026
+  
+  while read -r species toga prefix
+  do
+      dir="$out/$species"
+      toga_bed="$ann/${toga}_expandedexons.bed"
+      rna_bed="$dir/RNA_${species}_exones.bed"
+  
+      combined="$dir/${prefix}_combined_transcriptome.bed"
+      final="$dir/${prefix}_FINAL_transcriptome.bed"
+  
+      echo "======================================"
+      echo "$species"
+      echo "TOGA: $toga_bed"
+      echo "RNA:  $rna_bed"
+  
+      if [[ ! -s "$toga_bed" ]]; then
+          echo "ERROR: falta TOGA $toga_bed"
+          exit 1
+      fi
+  
+      if [[ ! -s "$rna_bed" ]]; then
+          echo "ERROR: falta RNA $rna_bed"
+          exit 1
+      fi
+  
+      cat "$toga_bed" "$rna_bed" > "$combined"
+  
+      sort -k1,1 -k4,4n "$combined" > "$final"
+  
+      echo "COMBINED:"
+      wc -l "$combined"
+  
+      echo "FINAL:"
+      wc -l "$final"
+  
+  done << EOF
+  Eonycteris_spelaea mEonSpe1.2.hap1.TOGA eSpe
+  Hipposideros_larvatus mHipLar1.2.pri.TOGA hLar
+  Miniopterus_schreibersii mMinSch1.1.hap1.TOGA mSch
+  Molossus_molossus mMolMol1.2.pri.TOGA mMol
+  Myotis_daubentonii mMyoDau2.1.pri.TOGA mDau
+  Myotis_myotis mMyoMyo1.6.pri.TOGA mMyo
+  Myotis_mystacinus mMyoMys1.1.hap1.TOGA mMys
+  Phyllostomus_discolor mPhyDis1.3.pri.TOGA pDis
+  Pipistrellus_kuhlii mPipKuh1.2.pri.TOGA pKuh
+  Pipistrellus_pygmaeus mPipKuh1.2.pri.TOGA pPyg
+  Plecotus_auritus mPleAur1.1.pri.TOGA pAur
+  Rhinolophus_ferrumequinum mRhiFer1.5.pri.TOGA rFer
+  Rhinolophus_hipposideros mRhiHip1.1.hap1.TOGA rHip
+  Rhinolophus_sinicus mRhiSin3.1.pri.TOGA rSin
+  Rousettus_aegyptiacus mRouAeg1.4.pri.TOGA rAeg
+  Vespertilio_murinus mVesMur1.1.pri.TOGA vMur
+  EOF
+  
+  echo "DONE"
