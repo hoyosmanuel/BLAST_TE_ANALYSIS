@@ -513,3 +513,43 @@ ahora hay que:
 
   chmod +x make_BLAST2_transcriptome_fastas_2026.sh
   bash make_BLAST2_transcriptome_fastas_2026.sh
+
+
+
+
+5. Crear la base de datos RepeatPeps
+--------------------------------------
+
+.. code-block:: bash
+
+  nano database.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=mkblastdb
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  #SBATCH --time=01:00:00
+  
+  set -euo pipefail
+  
+  . /home/mhoyosro/conda/etc/profile.d/conda.sh
+  conda activate blast
+  
+  cd /lustre/scratch/mhoyosro/project3/BLAST2_2026
+  
+  lib=/lustre/scratch/mhoyosro/project3/RepeatPeps.lib
+  
+  makeblastdb \
+      -in "$lib" \
+      -dbtype prot \
+      -out RepeatPeps_db
+
+
+.. code-block:: bash
+
+  sbatch database.sh
