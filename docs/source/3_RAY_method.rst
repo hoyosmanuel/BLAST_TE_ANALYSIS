@@ -62,12 +62,12 @@ En este punto tengo los insumos necesarios para reproducir estos resultados con 
 .. code-block:: bash
 
   cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
-  nano merge_RNA_gtf_by_species.sh
+  nano gtf_analisis_2026_receta_vieja.sh
 
 .. code-block:: bash
 
   #!/bin/bash
-  #SBATCH --job-name=gtfR
+  #SBATCH --job-name=gtfRold
   #SBATCH --output=%x.%j.out
   #SBATCH --error=%x.%j.err
   #SBATCH --partition=nocona
@@ -79,120 +79,103 @@ En este punto tengo los insumos necesarios para reproducir estos resultados con 
   set -euo pipefail
   
   export PATH=/lustre/work/mhoyosro/software/stringtie:${PATH}
+  export PATH=/lustre/work/mhoyosro/software/gffread:${PATH}
   
   ori=/lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
   out=/lustre/scratch/mhoyosro/project3/ANALISIS_2026
   
   mkdir -p "$out"
   
-  for species_dir in "$ori"/*
-  do
-      species=$(basename "$species_dir")
-      outdir="$out/$species"
-      mkdir -p "$outdir"
+  enter_species () {
+      species="$1"
+      mkdir -p "$out/$species"
+      cd "$out/$species" || exit 1
+  }
   
-      list="$outdir/${species}_list.txt"
-      find "$species_dir" -maxdepth 1 -name "*_MM.gtf" | sort > "$list"
+  enter_species Eonycteris_spelaea
+  cp "$ori/Eonycteris_spelaea/SRR6951022_MM.gtf" RNA_Eonycteris_spelaea.gtf
   
-      n=$(wc -l < "$list")
+  enter_species Miniopterus_schreibersii
+  cp "$ori/Miniopterus_schreibersii/ERR13757857_MM.gtf" RNA_Miniopterus_schreibersii.gtf
   
-      echo "======================================"
-      echo "SPECIES: $species"
-      echo "N GTF: $n"
-      echo "LIST: $list"
+  enter_species Molossus_molossus
+  cat > Molossus_molossus_list.txt << EOF
+  $ori/Molossus_molossus/SRR18652230_MM.gtf
+  $ori/Molossus_molossus/SRR18652231_MM.gtf
+  EOF
+  stringtie --merge -p 10 -o RNA_Molossus_molossus.gtf Molossus_molossus_list.txt
   
-      if [[ "$n" -eq 0 ]]; then
-          echo "ERROR: no GTF found for $species"
-          exit 1
-      elif [[ "$n" -eq 1 ]]; then
-          gtf=$(cat "$list")
-          cp "$gtf" "$outdir/RNA_${species}.gtf"
-          echo "Copied single GTF to $outdir/RNA_${species}.gtf"
-      else
-          stringtie --merge -p 10 -o "$outdir/RNA_${species}.gtf" "$list"
-          echo "Merged GTFs to $outdir/RNA_${species}.gtf"
-      fi
-  done
+  enter_species Myotis_daubentonii
+  cat > Myotis_daubentonii_list.txt << EOF
+  $ori/Myotis_daubentonii/ERR13757850_MM.gtf
+  $ori/Myotis_daubentonii/ERR13757851_MM.gtf
+  $ori/Myotis_daubentonii/ERR13757852_MM.gtf
+  $ori/Myotis_daubentonii/ERR13757853_MM.gtf
+  $ori/Myotis_daubentonii/ERR13757854_MM.gtf
+  EOF
+  stringtie --merge -p 10 -o RNA_Myotis_daubentonii.gtf Myotis_daubentonii_list.txt
   
-  echo "DONE"
-
-.. code-block:: bash
-
-  chmod +x merge_RNA_gtf_by_species.sh
-  sbatch merge_RNA_gtf_by_species.sh
-
-
-CORRECCION
-
-.. code-block:: bash
-
-  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
-  nano merge_RNA_gtf_by_species.sh
-
-.. code-block:: bash
-
-  #!/bin/bash
-  #SBATCH --job-name=gtfR
-  #SBATCH --output=%x.%j.out
-  #SBATCH --error=%x.%j.err
-  #SBATCH --partition=nocona
-  #SBATCH --nodes=1
-  #SBATCH --ntasks=16
-  #SBATCH --mem=128G
-  #SBATCH --time=48:00:00
+  enter_species Myotis_myotis
+  cat > Myotis_myotis_list.txt << EOF
+  $ori/Myotis_myotis/SRR18652217_MM.gtf
+  $ori/Myotis_myotis/SRR18652218_MM.gtf
+  $ori/Myotis_myotis/SRR18652219_MM.gtf
+  EOF
+  stringtie --merge -p 10 -o RNA_Myotis_myotis.gtf Myotis_myotis_list.txt
   
-  set -euo pipefail
+  enter_species Myotis_mystacinus
+  cp "$ori/Myotis_mystacinus/ERR13757864_MM.gtf" RNA_Myotis_mystacinus.gtf
   
-  export PATH=/lustre/work/mhoyosro/software/stringtie:${PATH}
+  enter_species Phyllostomus_discolor
+  cat > Phyllostomus_discolor_list.txt << EOF
+  $ori/Phyllostomus_discolor/SRR18652128_MM.gtf
+  $ori/Phyllostomus_discolor/SRR18652129_MM.gtf
+  $ori/Phyllostomus_discolor/SRR18652130_MM.gtf
+  $ori/Phyllostomus_discolor/SRR18652131_MM.gtf
+  $ori/Phyllostomus_discolor/SRR18652132_MM.gtf
+  EOF
+  stringtie --merge -p 10 -o RNA_Phyllostomus_discolor.gtf Phyllostomus_discolor_list.txt
   
-  ori=/lustre/scratch/mhoyosro/project3/RESULTS_RNA_MAPPING
-  out=/lustre/scratch/mhoyosro/project3/ANALISIS_2026
+  enter_species Pipistrellus_kuhlii
+  cp "$ori/Pipistrellus_kuhlii/SRR18652220_MM.gtf" RNA_Pipistrellus_kuhlii.gtf
   
-  mkdir -p "$out"
+  enter_species Pipistrellus_pygmaeus
+  cp "$ori/Pipistrellus_pygmaeus/ERR13757875_MM.gtf" RNA_Pipistrellus_pygmaeus.gtf
   
-  for species_dir in "$ori"/*
-  do
-      species=$(basename "$species_dir")
-      outdir="$out/$species"
+  enter_species Plecotus_auritus
+  cat > Plecotus_auritus_list.txt << EOF
+  $ori/Plecotus_auritus/ERR13757870_MM.gtf
+  $ori/Plecotus_auritus/ERR13757871_MM.gtf
+  $ori/Plecotus_auritus/ERR13757872_MM.gtf
+  $ori/Plecotus_auritus/ERR13757873_MM.gtf
+  $ori/Plecotus_auritus/ERR13757874_MM.gtf
+  EOF
+  stringtie --merge -p 10 -o RNA_Plecotus_auritus.gtf Plecotus_auritus_list.txt
   
-      mkdir -p "$outdir"
+  enter_species Rhinolophus_ferrumequinum
+  cp "$ori/Rhinolophus_ferrumequinum/SRR18652180_MM.gtf" RNA_Rhinolophus_ferrumequinum.gtf
   
-      list="$outdir/${species}_list.txt"
+  enter_species Rhinolophus_hipposideros
+  cat > Rhinolophus_hipposideros_list.txt << EOF
+  $ori/Rhinolophus_hipposideros/ERR13757944_MM.gtf
+  $ori/Rhinolophus_hipposideros/ERR13757945_MM.gtf
+  $ori/Rhinolophus_hipposideros/ERR13757946_MM.gtf
+  $ori/Rhinolophus_hipposideros/ERR13757947_MM.gtf
+  $ori/Rhinolophus_hipposideros/ERR13757948_MM.gtf
+  EOF
+  stringtie --merge -p 10 -o RNA_Rhinolophus_hipposideros.gtf Rhinolophus_hipposideros_list.txt
   
-      find "$species_dir" -maxdepth 1 -name "*_MM.gtf" | sort > "$list"
+  enter_species Rhinolophus_sinicus
+  cp "$ori/Rhinolophus_sinicus/SRR17418361_MM.gtf" RNA_Rhinolophus_sinicus.gtf
   
-      n=$(wc -l < "$list")
+  enter_species Rousettus_aegyptiacus
+  cat > Rousettus_aegyptiacus_list.txt << EOF
+  $ori/Rousettus_aegyptiacus/SRR18652228_MM.gtf
+  $ori/Rousettus_aegyptiacus/SRR18652229_MM.gtf
+  EOF
+  stringtie --merge -p 10 -o RNA_Rousettus_aegyptiacus.gtf Rousettus_aegyptiacus_list.txt
   
-      echo "======================================"
-      echo "SPECIES: $species"
-      echo "N GTF: $n"
-      echo "LIST: $list"
-  
-      if [[ "$n" -eq 0 ]]; then
-          echo "ERROR: no GTF found for $species"
-          exit 1
-  
-      elif [[ "$n" -eq 1 ]]; then
-          gtf=$(cat "$list")
-          cp "$gtf" "$outdir/RNA_${species}.gtf"
-          echo "Copied single GTF:"
-          echo "$gtf"
-          echo "to:"
-          echo "$outdir/RNA_${species}.gtf"
-  
-      else
-          stringtie --merge -p 10 \
-              -o "$outdir/RNA_${species}.gtf" \
-              "$list"
-  
-          echo "Merged GTFs to:"
-          echo "$outdir/RNA_${species}.gtf"
-      fi
-  done
+  enter_species Vespertilio_murinus
+  cp "$ori/Vespertilio_murinus/ERR13757846_MM.gtf" RNA_Vespertilio_murinus.gtf
   
   echo "DONE"
-
-.. code-block:: bash
-
-  chmod +x merge_RNA_gtf_by_species.sh
-  sbatch merge_RNA_gtf_by_species.sh
