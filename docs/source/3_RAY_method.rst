@@ -553,3 +553,112 @@ ahora hay que:
 .. code-block:: bash
 
   sbatch database.sh
+
+
+
+
+6. Hacer el BLAST
+--------------------------------------
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano blastx_transcriptomes_2026_array.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=blastxTE
+  #SBATCH --output=%x.%A_%a.out
+  #SBATCH --error=%x.%A_%a.err
+  #SBATCH --partition=nocona
+  #SBATCH --array=0-13
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=36
+  #SBATCH --mem=128G
+  #SBATCH --time=48:00:00
+  
+  set -euo pipefail
+  
+  . /home/mhoyosro/conda/etc/profile.d/conda.sh
+  conda activate blast
+  
+  base=/lustre/scratch/mhoyosro/project3/BLAST2_2026
+  db=/lustre/scratch/mhoyosro/project3/BLAST2_2026/RepeatPeps_db
+  
+  SPECIES=(
+  "Eonycteris_spelaea"
+  "Miniopterus_schreibersii"
+  "Molossus_molossus"
+  "Myotis_daubentonii"
+  "Myotis_myotis"
+  "Myotis_mystacinus"
+  "Phyllostomus_discolor"
+  "Pipistrellus_kuhlii"
+  "Plecotus_auritus"
+  "Rhinolophus_ferrumequinum"
+  "Rhinolophus_hipposideros"
+  "Rhinolophus_sinicus"
+  "Rousettus_aegyptiacus"
+  "Vespertilio_murinus"
+  )
+  
+  PREFIX=(
+  "eSpe"
+  "mSch"
+  "mMol"
+  "mDau"
+  "mMyo"
+  "mMys"
+  "pDis"
+  "pKuh"
+  "pAur"
+  "rFer"
+  "rHip"
+  "rSin"
+  "rAeg"
+  "vMur"
+  )
+  
+  species=${SPECIES[$SLURM_ARRAY_TASK_ID]}
+  prefix=${PREFIX[$SLURM_ARRAY_TASK_ID]}
+  
+  dir="$base/$species"
+  query="$dir/${prefix}_TRANSCRIPTOME.fasta"
+  out="$dir/${prefix}_vs_RepeatPeps.raw.tsv"
+  
+  echo "======================================"
+  echo "TASK:    $SLURM_ARRAY_TASK_ID"
+  echo "SPECIES: $species"
+  echo "PREFIX:  $prefix"
+  echo "QUERY:   $query"
+  echo "DB:      $db"
+  echo "OUT:     $out"
+  
+  if [[ ! -s "$query" ]]; then
+      echo "ERROR: falta query fasta: $query"
+      exit 1
+  fi
+  
+  if [[ ! -s "${db}.pin" ]]; then
+      echo "ERROR: falta base BLAST: ${db}.pin"
+      exit 1
+  fi
+  
+  blastx \
+    -query "$query" \
+    -db "$db" \
+    -evalue 1e-50 \
+    -outfmt "6 qseqid sseqid pident length qstart qend sstart send evalue bitscore qlen slen qcovs qcovhsp" \
+    -num_threads 36 \
+    -max_target_seqs 10 \
+    -out "$out"
+  
+  echo "DONE"
+  wc -l "$out"
+
+
+.. code-block:: bash
+
+  chmod +x blastx_transcriptomes_2026_array.sh
+  sbatch ./blastx_transcriptomes_2026_array.sh
