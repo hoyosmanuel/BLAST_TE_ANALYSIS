@@ -375,3 +375,141 @@ Pero para lo nuevo hay que hacerlo para 15 especies, usando:
 .. code-block:: bash
 
   bash make_FINAL_transcriptome_all.sh
+
+
+
+
+4. LIMPIAR
+--------------------------------------
+
+ahora hay que:
+
+| → limpiar nombres raros
+| → convertirlo a BED6 compatible
+| → extraer secuencias FASTA del genoma
+| → producir un transcriptoma FASTA por especie
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano make_BLAST2_transcriptome_fastas_2026.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=blast2fa
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  #SBATCH --mem=32G
+  #SBATCH --time=12:00:00
+  
+  set -euo pipefail
+  
+  . /home/mhoyosro/conda/etc/profile.d/conda.sh
+  conda activate alineador
+  
+  base=/lustre/scratch/mhoyosro/project3
+  finaldir=$base/ANALISIS_2026
+  blastdir=$base/BLAST2_2026
+  refdir=$base/REF_GENOMES
+  
+  mkdir -p "$blastdir"
+  
+  while read -r species prefix ref
+  do
+      echo "======================================"
+      echo "$species"
+  
+      in_bed="$finaldir/$species/${prefix}_FINAL_transcriptome.bed"
+      outdir="$blastdir/$species"
+      copied_bed="$outdir/${prefix}_FINAL_transcriptome.bed"
+      processed_bed="$outdir/${prefix}_TRANSCRIPTOME_PROCESSED.bed"
+      sorted_bed="$outdir/${prefix}_sorted.bed"
+      fasta="$outdir/${prefix}_TRANSCRIPTOME.fasta"
+      genome="$refdir/$ref"
+  
+      mkdir -p "$outdir"
+  
+      echo "INPUT BED: $in_bed"
+      echo "GENOME:    $genome"
+      echo "OUTDIR:    $outdir"
+  
+      if [[ ! -s "$in_bed" ]]; then
+          echo "ERROR: falta FINAL bed: $in_bed"
+          exit 1
+      fi
+  
+      if [[ ! -s "$genome" ]]; then
+          echo "ERROR: falta genoma: $genome"
+          exit 1
+      fi
+  
+      cp "$in_bed" "$copied_bed"
+  
+      # Pseudocódigo:
+      # 1. Limpiar espacios, comillas y punto-y-coma en los nombres.
+      # 2. Concatenar columnas 10 en adelante para construir un nombre trazable.
+      # 3. Crear BED6:
+      #    col1 = cromosoma
+      #    col2 = start
+      #    col3 = end
+      #    col4 = nombre concatenado
+      #    col5 = score
+      #    col6 = strand
+      sed 's/ /_/g; s/"//g; s/;/_/g' "$copied_bed" | \
+      awk 'BEGIN{FS=OFS="\t"} {
+          concatenated = $10
+          for(i=11; i<=NF; i++) {
+              if ($i != "") concatenated = concatenated "__" $i
+          }
+          print $1, $2, $3, concatenated, $5, $6
+      }' > "$processed_bed"
+  
+      if [[ ! -s "$processed_bed" ]]; then
+          echo "ERROR: BED procesado vacío: $processed_bed"
+          exit 1
+      fi
+  
+      sort -k1,1 -k2,2n "$processed_bed" > "$sorted_bed"
+  
+      bedtools getfasta \
+          -fi "$genome" \
+          -bed "$sorted_bed" \
+          -fo "$fasta" \
+          -name \
+          -s
+  
+      rm -f "$sorted_bed"
+  
+      echo "PROCESSED BED:"
+      wc -l "$processed_bed"
+  
+      echo "FASTA:"
+      grep -c "^>" "$fasta"
+  
+  done << EOF
+  Eonycteris_spelaea eSpe mEonSpe1.2.hap1.fa
+  Miniopterus_schreibersii mSch mMinSch1.1.hap1.fa
+  Molossus_molossus mMol mMolMol1.2.pri.fa
+  Myotis_daubentonii mDau mMyoDau2.1.pri.fa
+  Myotis_myotis mMyo mMyoMyo1.6.pri.fa
+  Myotis_mystacinus mMys mMyoMys1.1.hap1.fa
+  Phyllostomus_discolor pDis mPhyDis1.3.pri.fa
+  Pipistrellus_kuhlii pKuh mPipKuh1.2.pri.fa
+  Plecotus_auritus pAur mPleAur1.1.pri.fa
+  Rhinolophus_ferrumequinum rFer mRhiFer1.5.pri.fa
+  Rhinolophus_hipposideros rHip mRhiHip1.1.hap1.fa
+  Rhinolophus_sinicus rSin mRhiSin3.1.pri.fa
+  Rousettus_aegyptiacus rAeg mRouAeg1.4.pri.fa
+  Vespertilio_murinus vMur mVesMur1.1.pri.fa
+  EOF
+  
+  echo "DONE"
+
+.. code-block:: bash
+
+  chmod +x make_BLAST2_transcriptome_fastas_2026.sh
+  bash make_BLAST2_transcriptome_fastas_2026.sh
