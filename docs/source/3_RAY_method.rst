@@ -321,6 +321,7 @@ Pero para lo nuevo hay que hacerlo para 15 especies, usando:
   while read -r species toga prefix
   do
       dir="$out/$species"
+  
       toga_bed="$ann/${toga}_expandedexons.bed"
       rna_bed="$dir/RNA_${species}_exones.bed"
   
@@ -354,7 +355,6 @@ Pero para lo nuevo hay que hacerlo para 15 especies, usando:
   
   done << EOF
   Eonycteris_spelaea mEonSpe1.2.hap1.TOGA eSpe
-  Hipposideros_larvatus mHipLar1.2.pri.TOGA hLar
   Miniopterus_schreibersii mMinSch1.1.hap1.TOGA mSch
   Molossus_molossus mMolMol1.2.pri.TOGA mMol
   Myotis_daubentonii mMyoDau2.1.pri.TOGA mDau
@@ -362,7 +362,6 @@ Pero para lo nuevo hay que hacerlo para 15 especies, usando:
   Myotis_mystacinus mMyoMys1.1.hap1.TOGA mMys
   Phyllostomus_discolor mPhyDis1.3.pri.TOGA pDis
   Pipistrellus_kuhlii mPipKuh1.2.pri.TOGA pKuh
-  Pipistrellus_pygmaeus mPipKuh1.2.pri.TOGA pPyg
   Plecotus_auritus mPleAur1.1.pri.TOGA pAur
   Rhinolophus_ferrumequinum mRhiFer1.5.pri.TOGA rFer
   Rhinolophus_hipposideros mRhiHip1.1.hap1.TOGA rHip
@@ -372,3 +371,7 @@ Pero para lo nuevo hay que hacerlo para 15 especies, usando:
   EOF
   
   echo "DONE"
+
+.. code-block:: bash
+
+  bash make_FINAL_transcriptome_all.sh
