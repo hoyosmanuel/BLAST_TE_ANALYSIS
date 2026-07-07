@@ -1,5 +1,5 @@
 1. Extract the exons from the GTF 
---------------------
+----------------------------------
 
 El código original mio empezaba asi:
 Merge the gff files of the RNAseq
@@ -179,3 +179,109 @@ En este punto tengo los insumos necesarios para reproducir estos resultados con 
   cp "$ori/Vespertilio_murinus/ERR13757846_MM.gtf" RNA_Vespertilio_murinus.gtf
   
   echo "DONE"
+
+2. Extract the RNA_species_exones.bed
+--------------------------------------
+
+el código original era este
+
+.. code-block:: bash
+
+  export PATH=/lustre/work/mhoyosro/software/gffread:${PATH}
+  . /home/mhoyosro/conda/etc/profile.d/conda.sh
+  conda activate alineador
+  
+  cd /lustre/scratch/mhoyosro/project3/PLANCE/hipposideros
+  awk '$3=="exon"' RNA_hipposideros.gtf > hipposideros_exones_only.gtf
+  gff2bed < hipposideros_exones_only.gtf  > RNA_hipposideros_exones.bed
+  
+  cd /lustre/scratch/mhoyosro/project3/PLANCE/molossus
+  awk '$3=="exon"' RNA_molossus.gtf > molossus_exones_only.gtf
+  gff2bed < molossus_exones_only.gtf  > RNA_molossus_exones.bed
+  
+  cd /lustre/scratch/mhoyosro/project3/PLANCE/myotis
+  awk '$3=="exon"' RNA_myotis.gtf > myotis_exones_only.gtf
+  gff2bed < myotis_exones_only.gtf > RNA_myotis_exones.bed
+  
+  cd /lustre/scratch/mhoyosro/project3/PLANCE/phyllostomus
+  awk '$3=="exon"' RNA_phyllostomus.gtf > phyllostomus_exones_only.gtf
+  gff2bed < phyllostomus_exones_only.gtf  > RNA_phyllostomus_exones.bed
+  
+  cd /lustre/scratch/mhoyosro/project3/PLANCE/pipistrellus
+  awk '$3=="exon"' RNA_pipistrellus.gtf > pipistrellus_exones_only.gtf
+  gff2bed < pipistrellus_exones_only.gtf  > RNA_pipistrellus_exones.bed
+  
+  cd /lustre/scratch/mhoyosro/project3/PLANCE/rhinolophus
+  awk '$3=="exon"' RNA_rhinolophus.gtf > rhinolophus_exones_only.gtf
+  gff2bed < rhinolophus_exones_only.gtf  > RNA_rhinolophus_exones.bed
+  
+  cd /lustre/scratch/mhoyosro/project3/PLANCE/rousettus
+  awk '$3=="exon"' RNA_rousettus.gtf > rousettus_exones_only.gtf
+  gff2bed < rousettus_exones_only.gtf  > RNA_rousettus_exones.bed
+
+Y el código actualizado es este:
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano RNA_gtf_to_exon_bed_all.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=gtf2bed
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  #SBATCH --mem=16G
+  #SBATCH --time=12:00:00
+  
+  set -euo pipefail
+  
+  export PATH=/lustre/work/mhoyosro/software/gffread:${PATH}
+  
+  . /home/mhoyosro/conda/etc/profile.d/conda.sh
+  conda activate alineador
+  
+  base=/lustre/scratch/mhoyosro/project3/ANALISIS_2026
+  
+  find "$base" -mindepth 2 -maxdepth 2 -name "RNA_*.gtf" | sort | while read gtf
+  do
+      dir=$(dirname "$gtf")
+      species=$(basename "$dir")
+      basefile=$(basename "$gtf" .gtf)
+  
+      exon_gtf="$dir/${species}_exones_only.gtf"
+      bed="$dir/${basefile}_exones.bed"
+  
+      echo "======================================"
+      echo "SPECIES: $species"
+      echo "GTF: $gtf"
+      echo "EXON_GTF: $exon_gtf"
+      echo "BED: $bed"
+  
+      awk '$3=="exon"' "$gtf" > "$exon_gtf"
+  
+      if [[ ! -s "$exon_gtf" ]]; then
+          echo "ERROR: exon GTF vacío: $exon_gtf"
+          exit 1
+      fi
+  
+      gff2bed < "$exon_gtf" > "$bed"
+  
+      if [[ ! -s "$bed" ]]; then
+          echo "ERROR: BED vacío: $bed"
+          exit 1
+      fi
+  
+      echo "DONE"
+  done
+  
+  echo "ALL DONE"
+
+.. code-block:: bash
+
+  chmod +x RNA_gtf_to_exon_bed_all.sh
+  sbatch RNA_gtf_to_exon_bed_all.sh
