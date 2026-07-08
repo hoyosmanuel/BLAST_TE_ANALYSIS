@@ -662,3 +662,144 @@ ahora hay que:
 
   chmod +x blastx_transcriptomes_2026_array.sh
   sbatch ./blastx_transcriptomes_2026_array.sh
+
+
+7. Arreglar el output de BLASTX
+--------------------------------------
+
+Tenemos que arreglar el output crudo de BLASTX para convertirlo en una tabla legible, con coordenadas del exon, strand, familia TE, tipo TE y métricas BLAST.
+escencialmente para cada archivo *_vs_RepeatPeps.raw.tsv, tenemos que
+
+1. Tomar el qseqid generado por bedtools.
+   Ejemplo:
+   exon_name::scaffold:start-end(strand)
+
+2. Cambiar "::" por "__"
+   Propósito:
+   evitar que el separador "::" interfiera cuando luego partimos por ":".
+
+3. Cambiar ":" por tabulaciones.
+   Propósito:
+   separar:
+   - nombre del exon
+   - coordenadas genómicas
+
+4. Separar el bloque start-end(strand).
+   Ejemplo:
+   1000-1200(+)
+   pasa a:
+   1000    1200    +
+
+5. Cambiar "#" por tabulaciones.
+   Propósito:
+   separar información del subject BLAST:
+   - TE_FAMILY
+   - TE_TYPE
+
+6. Agregar header.
+   Resultado final:
+   una tabla FINAL.tsv con 18 columnas.
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano polish_blastx_outputs_2026.sh
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=polishBLAST
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  #SBATCH --mem=16G
+  #SBATCH --time=04:00:00
+  
+  set -euo pipefail
+  
+  base=/lustre/scratch/mhoyosro/project3/BLAST2_2026
+  
+  header="qseqid_EXON_NAME	qseqid_start	qseqid_end	qseqid_sense	TE_FAMILY	TE_TYPE	pident	length	qstart	qend	sstart	send	evalue	bitscore	qlen	slen	qcovs	qcovhsp"
+  
+  while read -r species prefix
+  do
+      dir="$base/$species"
+      raw="$dir/${prefix}_vs_RepeatPeps.raw.tsv"
+  
+      w1="$dir/${prefix}_vs_RepeatPeps.working1.tsv"
+      w2="$dir/${prefix}_vs_RepeatPeps.working2.tsv"
+      w3="$dir/${prefix}_vs_RepeatPeps.working3.tsv"
+      w4="$dir/${prefix}_vs_RepeatPeps.working4.tsv"
+      final="$dir/${prefix}_vs_RepeatPeps.FINAL.tsv"
+  
+      echo "======================================"
+      echo "SPECIES: $species"
+      echo "RAW:     $raw"
+      echo "FINAL:   $final"
+  
+      if [[ ! -s "$raw" ]]; then
+          echo "ERROR: raw BLAST file missing or empty: $raw"
+          exit 1
+      fi
+  
+      # Paso 1:
+      # Cambiar "::" por "__".
+      # Esto protege el separador doble antes de partir por ":".
+      sed 's/::/__/g' "$raw" > "$w1"
+  
+      # Paso 2:
+      # Cambiar ":" por tab.
+      # Esto separa nombre/coordenadas dentro del qseqid.
+      sed 's/:/\t/g' "$w1" > "$w2"
+  
+      # Paso 3:
+      # Separar start-end(strand) en tres columnas:
+      # start, end, strand.
+      sed -E 's/^([^\t]*)\t([0-9]+)-([0-9]+)\(([+-\.])\)/\1\t\2\t\3\t\4/' "$w2" > "$w3"
+  
+      # Paso 4:
+      # Separar "#" por tab.
+      # Esto separa TE_FAMILY y TE_TYPE desde sseqid.
+      sed 's/#/\t/g' "$w3" > "$w4"
+  
+      # Paso 5:
+      # Agregar header.
+      {
+          echo -e "$header"
+          cat "$w4"
+      } > "$final"
+  
+      echo "RAW lines:"
+      wc -l "$raw"
+  
+      echo "FINAL lines:"
+      wc -l "$final"
+  
+      echo "FINAL columns:"
+      awk 'NR==1{print NF; next} NR==2{print NF; exit}' "$final"
+  
+  done << EOF
+  Eonycteris_spelaea eSpe
+  Miniopterus_schreibersii mSch
+  Molossus_molossus mMol
+  Myotis_daubentonii mDau
+  Myotis_myotis mMyo
+  Myotis_mystacinus mMys
+  Phyllostomus_discolor pDis
+  Pipistrellus_kuhlii pKuh
+  Plecotus_auritus pAur
+  Rhinolophus_ferrumequinum rFer
+  Rhinolophus_hipposideros rHip
+  Rhinolophus_sinicus rSin
+  Rousettus_aegyptiacus rAeg
+  Vespertilio_murinus vMur
+  EOF
+  
+  echo "DONE"
+
+.. code-block:: bash
+
+  chmod +x polish_blastx_outputs_2026.sh
+  bash polish_blastx_outputs_2026.sh
