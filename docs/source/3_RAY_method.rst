@@ -826,3 +826,103 @@ Entonces hay que ordenar con 4 criterios
 | chr
 | 1000-1100 -> todos juntos
 
+| 2. Dentro de esa posición agrupar hits por exon.
+| Exon1 y todos sus hits
+| Exon2 y todos sus hits
+
+| 3. Dentro de un mismo exon poner primero  hits con mayor identidad.
+| Por ejemplo:
+| 97%
+| 94%
+| 91%
+| 89%
+
+| 4. Si dos hits tienen la misma identidad, usar bitscore para desempatar.
+
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano orden.sh 
+
+.. code-block:: bash
+
+  #!/bin/bash
+  #SBATCH --job-name=sortBLAST
+  #SBATCH --output=%x.%j.out
+  #SBATCH --error=%x.%j.err
+  #SBATCH --partition=nocona
+  #SBATCH --nodes=1
+  #SBATCH --ntasks=1
+  #SBATCH --cpus-per-task=4
+  #SBATCH --mem=8G
+  #SBATCH --time=02:00:00
+  
+  set -euo pipefail
+  
+  . /home/mhoyosro/conda/etc/profile.d/conda.sh
+  conda activate biopython
+  
+  python << 'EOF'
+  import pandas as pd
+  from pathlib import Path
+  
+  base = Path("/lustre/scratch/mhoyosro/project3/BLAST2_2026")
+  
+  species = {
+      "Eonycteris_spelaea": "eSpe",
+      "Miniopterus_schreibersii": "mSch",
+      "Molossus_molossus": "mMol",
+      "Myotis_daubentonii": "mDau",
+      "Myotis_myotis": "mMyo",
+      "Myotis_mystacinus": "mMys",
+      "Phyllostomus_discolor": "pDis",
+      "Pipistrellus_kuhlii": "pKuh",
+      "Plecotus_auritus": "pAur",
+      "Rhinolophus_ferrumequinum": "rFer",
+      "Rhinolophus_hipposideros": "rHip",
+      "Rhinolophus_sinicus": "rSin",
+      "Rousettus_aegyptiacus": "rAeg",
+      "Vespertilio_murinus": "vMur"
+  }
+  
+  for sp, prefix in species.items():
+  
+      infile = base / sp / f"{prefix}_vs_RepeatPeps.FINAL.tsv"
+      outfile = base / sp / f"{prefix}_vs_RepeatPeps.FINAL_sorted.tsv"
+  
+      print("=" * 60)
+      print(sp)
+      print("Input :", infile)
+      print("Output:", outfile)
+  
+      df = pd.read_csv(infile, sep="\t")
+  
+      df_sorted = df.sort_values(
+          by=[
+              "qseqid_start",
+              "qseqid_end",
+              "qseqid_EXON_NAME",
+              "pident",
+              "bitscore"
+          ],
+          ascending=[
+              True,
+              True,
+              True,
+              False,   # mayor identidad primero
+              False    # mayor bitscore primero
+          ]
+      )
+  
+      df_sorted.to_csv(outfile, sep="\t", index=False)
+  
+      print("Filas:", len(df_sorted))
+  
+  print("\nDONE")
+  EOF
+
+
+.. code-block:: bash
+
+  sbatch orden.sh 
