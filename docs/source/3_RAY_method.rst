@@ -926,3 +926,97 @@ Entonces hay que ordenar con 4 criterios
 .. code-block:: bash
 
   sbatch orden.sh 
+
+
+Corregir el header
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/BLAST2_2026
+  
+  header=$'qseqid_EXON_NAME\tqseqid_start\tqseqid_end\tqseqid_sense\tTE_FAMILY\tTE_TYPE\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tqcovs\tqcovhsp'
+  
+  find . -name "*_vs_RepeatPeps.FINAL.tsv" | while read f
+  do
+      echo "Corrigiendo header: $f"
+      tmp="${f}.tmp"
+      {
+          printf "%s\n" "$header"
+          tail -n +2 "$f"
+      } > "$tmp"
+      mv "$tmp" "$f"
+  done
+
+
+
+
+9. Quedarse con un solo hit de BLAST:
+--------------------------------------
+En este punto contamos con la siguiente información:
+
+| qseqid_start ↑
+| qseqid_end ↑
+| qseqid_EXON_NAME ↑
+| pident ↓
+| bitscore ↓
+
+entonces la función drop_duplicates(... keep="first") conserva, para cada exón, el hit con mejor pident y, si hay empate, mejor bitscore.
+la lógica es:
+
+Para cada archivo FINAL_ordenado.tsv: leer tabla, para cada grupo definido por: · qseqid_EXON_NAME ·qseqid_start ·qseqid_end: conservar solo la primera fila
+como el archivo ya está ordenado: la primera fila es el mejor hit BLASTX de ese exón; guardar como: *_vs_RepeatPeps.FINAL_FILTRO_1.tsv
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano filtro1_drop_duplicates_2026.py
+
+.. code-block:: bash
+
+  import pandas as pd
+  from pathlib import Path
+  
+  base = Path("/lustre/scratch/mhoyosro/project3/BLAST2_2026")
+  
+  files = {
+      "Eonycteris_spelaea": "eSpe",
+      "Miniopterus_schreibersii": "mSch",
+      "Molossus_molossus": "mMol",
+      "Myotis_daubentonii": "mDau",
+      "Myotis_myotis": "mMyo",
+      "Myotis_mystacinus": "mMys",
+      "Phyllostomus_discolor": "pDis",
+      "Pipistrellus_kuhlii": "pKuh",
+      "Plecotus_auritus": "pAur",
+      "Rhinolophus_ferrumequinum": "rFer",
+      "Rhinolophus_hipposideros": "rHip",
+      "Rhinolophus_sinicus": "rSin",
+      "Rousettus_aegyptiacus": "rAeg",
+      "Vespertilio_murinus": "vMur",
+  }
+  
+  for species, prefix in files.items():
+      infile = base / species / f"{prefix}_vs_RepeatPeps.FINAL_ordenado.tsv"
+      outfile = base / species / f"{prefix}_vs_RepeatPeps.FINAL_FILTRO_1.tsv"
+  
+      df = pd.read_csv(infile, sep="\t")
+  
+      before = len(df)
+  
+      df_unique = df.drop_duplicates(
+          subset=["qseqid_EXON_NAME", "qseqid_start", "qseqid_end"],
+          keep="first"
+      )
+  
+      after = len(df_unique)
+  
+      df_unique.to_csv(outfile, sep="\t", index=False)
+  
+      print(f"{species}: {before} -> {after} rows | saved: {outfile}")
+  
+  print("DONE")
+
+
+.. code-block:: bash
+
+  python3 filtro1_drop_duplicates_2026.py
