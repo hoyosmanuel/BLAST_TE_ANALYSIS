@@ -803,3 +803,26 @@ escencialmente para cada archivo *_vs_RepeatPeps.raw.tsv, tenemos que
 
   chmod +x polish_blastx_outputs_2026.sh
   bash polish_blastx_outputs_2026.sh
+
+
+
+8. Ordenar los archivos
+--------------------------------------
+Aquí se ordena el alineamiento BLASTX de un exon contra una proteína de TEs.
+Pero como cada exon puede tener muchos hits.
+
+Por ejemplo:
+
+| Exon A  ---> LINE_RT
+| Exon A  ---> Gypsy
+| Exon A  ---> Mariner
+| Exon A  ---> hAT
+
+Todos aparecen mezclados.
+
+Entonces hay que ordenar con 4 criterios
+
+| 1. Agrupando todos los hits que pertenecen al mismo intervalo genómico.
+| chr
+| 1000-1100 -> todos juntos
+
