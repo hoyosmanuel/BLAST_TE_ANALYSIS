@@ -1088,3 +1088,331 @@ Entonces ahora vamos a partir las columnas en 3 partes usando __:
 .. code-block:: bash
 
   python3 filtro2_split_exon_name_2026.py
+
+
+
+11. Encontrar los TE extra hacía 3'
+-------------------------------------
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano find_terminal_TE_exon_candidates_2026.py
+
+.. code-block:: bash
+
+  import re
+  import pandas as pd
+  from pathlib import Path
+  from collections import defaultdict
+  
+  BASE = Path("/lustre/scratch/mhoyosro/project3")
+  BLAST = BASE / "BLAST2_2026"
+  ANALISIS = BASE / "ANALISIS_2026"
+  ANNOT = BASE / "ANNOTATIONS"
+  
+  MIN_EXONS = 3
+  MIN_SHARED_TOGA_EXONS = 2
+  
+  SPECIES = {
+      "Eonycteris_spelaea": ("eSpe", "mEonSpe1.2.hap1.TOGA"),
+      "Miniopterus_schreibersii": ("mSch", "mMinSch1.1.hap1.TOGA"),
+      "Molossus_molossus": ("mMol", "mMolMol1.2.pri.TOGA"),
+      "Myotis_daubentonii": ("mDau", "mMyoDau2.1.pri.TOGA"),
+      "Myotis_myotis": ("mMyo", "mMyoMyo1.6.pri.TOGA"),
+      "Myotis_mystacinus": ("mMys", "mMyoMys1.1.hap1.TOGA"),
+      "Phyllostomus_discolor": ("pDis", "mPhyDis1.3.pri.TOGA"),
+      "Pipistrellus_kuhlii": ("pKuh", "mPipKuh1.2.pri.TOGA"),
+      "Plecotus_auritus": ("pAur", "mPleAur1.1.pri.TOGA"),
+      "Rhinolophus_ferrumequinum": ("rFer", "mRhiFer1.5.pri.TOGA"),
+      "Rhinolophus_hipposideros": ("rHip", "mRhiHip1.1.hap1.TOGA"),
+      "Rhinolophus_sinicus": ("rSin", "mRhiSin3.1.pri.TOGA"),
+      "Rousettus_aegyptiacus": ("rAeg", "mRouAeg1.4.pri.TOGA"),
+      "Vespertilio_murinus": ("vMur", "mVesMur1.1.pri.TOGA"),
+  }
+  
+  
+  def parse_attrs(attr):
+      d = {}
+      for key, val in re.findall(r'(\S+) "([^"]+)"', attr):
+          d[key] = val
+      return d
+  
+  
+  def overlap(a_start, a_end, b_start, b_end):
+      return a_start < b_end and b_start < a_end
+  
+  
+  def parse_rna_gtf(gtf_path):
+      transcripts = defaultdict(list)
+  
+      with open(gtf_path) as f:
+          for line in f:
+              if line.startswith("#"):
+                  continue
+  
+              parts = line.rstrip("\n").split("\t")
+              if len(parts) < 9:
+                  continue
+              if parts[2] != "exon":
+                  continue
+  
+              chrom = parts[0]
+              start = int(parts[3]) - 1   # GTF 1-based -> BED 0-based
+              end = int(parts[4])
+              strand = parts[6]
+              attrs = parse_attrs(parts[8])
+  
+              tid = attrs.get("transcript_id")
+              gid = attrs.get("gene_id")
+              exon_number = attrs.get("exon_number", "")
+  
+              if tid is None:
+                  continue
+  
+              transcripts[tid].append({
+                  "chrom": chrom,
+                  "start": start,
+                  "end": end,
+                  "strand": strand,
+                  "gene_id": gid,
+                  "transcript_id": tid,
+                  "exon_number": exon_number,
+              })
+  
+      for tid in transcripts:
+          transcripts[tid] = sorted(transcripts[tid], key=lambda x: (x["start"], x["end"]))
+  
+      return transcripts
+  
+  
+  def parse_toga_bed(toga_path):
+      toga = defaultdict(list)
+  
+      with open(toga_path) as f:
+          for line in f:
+              parts = line.rstrip("\n").split("\t")
+              if len(parts) < 6:
+                  continue
+  
+              chrom = parts[0]
+              start = int(parts[1])
+              end = int(parts[2])
+              strand = parts[5]
+  
+              toga[(chrom, strand)].append((start, end))
+  
+      for key in toga:
+          toga[key].sort()
+  
+      return toga
+  
+  
+  def any_toga_overlap(toga_intervals, chrom, strand, start, end):
+      for s, e in toga_intervals.get((chrom, strand), []):
+          if e < start:
+              continue
+          if s > end:
+              break
+          if overlap(start, end, s, e):
+              return True
+      return False
+  
+  
+  def get_overlapping_toga_intervals(toga_intervals, chrom, strand, exons):
+      hits = []
+  
+      for exon in exons:
+          start = exon["start"]
+          end = exon["end"]
+  
+          for s, e in toga_intervals.get((chrom, strand), []):
+              if e < start:
+                  continue
+              if s > end:
+                  break
+              if overlap(start, end, s, e):
+                  hits.append((s, e))
+  
+      return hits
+  
+  
+  def parse_blast_row_identity(row):
+      name1 = str(row["qseqid_EXON_NAME_1"])
+      name2 = str(row["qseqid_EXON_NAME_2"])
+      name3 = str(row["qseqid_EXON_NAME_3"])
+  
+      if not name1.startswith("gene_id_"):
+          return None
+  
+      if not name2.startswith("transcript_id_"):
+          return None
+  
+      gene_id = name1.replace("gene_id_", "", 1)
+      transcript_id = name2.replace("transcript_id_", "", 1)
+  
+      exon_match = re.search(r"exon_number_([^_]+)", name3)
+      exon_number = exon_match.group(1) if exon_match else ""
+  
+      chrom = name3.split("____")[-1]
+  
+      return gene_id, transcript_id, exon_number, chrom
+  
+  
+  all_candidates = []
+  
+  for species, (prefix, toga_prefix) in SPECIES.items():
+      print("=" * 80)
+      print(species)
+  
+      blast_file = BLAST / species / f"{prefix}_vs_RepeatPeps.FINAL_FILTRO_2.tsv"
+      gtf_file = ANALISIS / species / f"RNA_{species}.gtf"
+      toga_file = ANNOT / f"{toga_prefix}_expandedexons.bed"
+  
+      if not blast_file.exists():
+          print(f"Missing BLAST file: {blast_file}")
+          continue
+      if not gtf_file.exists():
+          print(f"Missing RNA GTF: {gtf_file}")
+          continue
+      if not toga_file.exists():
+          print(f"Missing TOGA BED: {toga_file}")
+          continue
+  
+      transcripts = parse_rna_gtf(gtf_file)
+      toga_intervals = parse_toga_bed(toga_file)
+      df = pd.read_csv(blast_file, sep="\t")
+  
+      species_candidates = []
+  
+      for _, row in df.iterrows():
+          parsed = parse_blast_row_identity(row)
+          if parsed is None:
+              continue
+  
+          gene_id, transcript_id, exon_number, chrom_from_name = parsed
+  
+          if transcript_id not in transcripts:
+              continue
+  
+          exons = transcripts[transcript_id]
+          if len(exons) < MIN_EXONS:
+              continue
+  
+          start = int(row["qseqid_start"])
+          end = int(row["qseqid_end"])
+          strand = str(row["qseqid_sense"])
+          chrom = chrom_from_name
+  
+          # localizar este exon dentro del transcrito
+          matching_positions = [
+              i for i, exon in enumerate(exons)
+              if exon["chrom"] == chrom and exon["start"] == start and exon["end"] == end
+          ]
+  
+          if not matching_positions:
+              continue
+  
+          exon_index = matching_positions[0]
+  
+          # nos interesan sólo exones terminales
+          if exon_index == 0:
+              terminal_position = "first_genomic_exon"
+          elif exon_index == len(exons) - 1:
+              terminal_position = "last_genomic_exon"
+          else:
+              continue
+  
+          # el exon candidato NO debe solapar TOGA
+          if any_toga_overlap(toga_intervals, chrom, strand, start, end):
+              continue
+  
+          # pero el transcrito debe compartir otros exones con TOGA
+          shared_toga = get_overlapping_toga_intervals(toga_intervals, chrom, strand, exons)
+          shared_exon_count = 0
+          for exon in exons:
+              if any_toga_overlap(toga_intervals, chrom, strand, exon["start"], exon["end"]):
+                  shared_exon_count += 1
+  
+          if shared_exon_count < MIN_SHARED_TOGA_EXONS:
+              continue
+  
+          toga_start = min(s for s, e in shared_toga)
+          toga_end = max(e for s, e in shared_toga)
+  
+          if end <= toga_start:
+              genomic_side = "left_of_TOGA"
+          elif start >= toga_end:
+              genomic_side = "right_of_TOGA"
+          else:
+              # no está fuera del rango principal TOGA
+              continue
+  
+          if strand == "+":
+              biological_end = "5prime" if genomic_side == "left_of_TOGA" else "3prime"
+          elif strand == "-":
+              biological_end = "3prime" if genomic_side == "left_of_TOGA" else "5prime"
+          else:
+              biological_end = "unknown"
+  
+          out = {
+              "species": species,
+              "prefix": prefix,
+              "gene_id": gene_id,
+              "transcript_id": transcript_id,
+              "transcript_n_exons": len(exons),
+              "candidate_exon_number": exon_number,
+              "candidate_exon_index_genomic_order": exon_index + 1,
+              "terminal_position": terminal_position,
+              "chrom": chrom,
+              "start": start,
+              "end": end,
+              "strand": strand,
+              "genomic_side": genomic_side,
+              "biological_end": biological_end,
+              "shared_exons_with_TOGA": shared_exon_count,
+              "TOGA_shared_locus_start": toga_start,
+              "TOGA_shared_locus_end": toga_end,
+              "TE_FAMILY": row["TE_FAMILY"],
+              "TE_TYPE": row["TE_TYPE"],
+              "pident": row["pident"],
+              "length": row["length"],
+              "evalue": row["evalue"],
+              "bitscore": row["bitscore"],
+              "qcovs": row["qcovs"],
+              "qcovhsp": row["qcovhsp"],
+              "qseqid_EXON_NAME_1": row["qseqid_EXON_NAME_1"],
+              "qseqid_EXON_NAME_2": row["qseqid_EXON_NAME_2"],
+              "qseqid_EXON_NAME_3": row["qseqid_EXON_NAME_3"],
+          }
+  
+          species_candidates.append(out)
+          all_candidates.append(out)
+  
+      print(f"Candidates: {len(species_candidates)}")
+  
+  outdir = BASE / "BLAST2_2026" / "terminal_TE_exon_candidates"
+  outdir.mkdir(exist_ok=True)
+  
+  outdf = pd.DataFrame(all_candidates)
+  outfile = outdir / "terminal_TE_exon_candidates.all_species.tsv"
+  outdf.to_csv(outfile, sep="\t", index=False)
+  
+  print("=" * 80)
+  print(f"TOTAL candidates: {len(outdf)}")
+  print(f"Saved: {outfile}")
+  
+  if len(outdf) > 0:
+      summary = (
+          outdf.groupby(["species", "biological_end", "TE_TYPE"])
+          .size()
+          .reset_index(name="n")
+          .sort_values(["species", "n"], ascending=[True, False])
+      )
+      summary_file = outdir / "terminal_TE_exon_candidates.summary.tsv"
+      summary.to_csv(summary_file, sep="\t", index=False)
+      print(f"Saved summary: {summary_file}")
+
+.. code-block:: bash
+
+  python3 find_terminal_TE_exon_candidates_2026.py
