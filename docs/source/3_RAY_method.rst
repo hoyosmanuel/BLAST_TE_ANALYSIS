@@ -1020,3 +1020,71 @@ como el archivo ya está ordenado: la primera fila es el mejor hit BLASTX de ese
 .. code-block:: bash
 
   python3 filtro1_drop_duplicates_2026.py
+
+
+10. Mejorar columnas 
+----------------------------------
+
+En este momento hay columnas muy largas, algo como asi:
+``gene_id_MSTRG.49__transcript_id_MSTRG.49.1__exon_number_2____scaffold_m19_p_1``
+o como asi:
+``ENST00000302182.8__UBB__217_exon1__scaffold_m19_p_29``
+Entonces ahora vamos a partir las columnas en 3 partes usando __:
+
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2
+  nano filtro2_split_exon_name_2026.py
+
+.. code-block:: bash
+
+  import pandas as pd
+  from pathlib import Path
+  
+  base = Path("/lustre/scratch/mhoyosro/project3/BLAST2_2026")
+  
+  files = {
+      "Eonycteris_spelaea": "eSpe",
+      "Miniopterus_schreibersii": "mSch",
+      "Molossus_molossus": "mMol",
+      "Myotis_daubentonii": "mDau",
+      "Myotis_myotis": "mMyo",
+      "Myotis_mystacinus": "mMys",
+      "Phyllostomus_discolor": "pDis",
+      "Pipistrellus_kuhlii": "pKuh",
+      "Plecotus_auritus": "pAur",
+      "Rhinolophus_ferrumequinum": "rFer",
+      "Rhinolophus_hipposideros": "rHip",
+      "Rhinolophus_sinicus": "rSin",
+      "Rousettus_aegyptiacus": "rAeg",
+      "Vespertilio_murinus": "vMur",
+  }
+  
+  new_cols = ["qseqid_EXON_NAME_1", "qseqid_EXON_NAME_2", "qseqid_EXON_NAME_3"]
+  
+  for species, prefix in files.items():
+      infile = base / species / f"{prefix}_vs_RepeatPeps.FINAL_FILTRO_1.tsv"
+      outfile = base / species / f"{prefix}_vs_RepeatPeps.FINAL_FILTRO_2.tsv"
+  
+      df = pd.read_csv(infile, sep="\t")
+  
+      split_cols = df["qseqid_EXON_NAME"].astype(str).str.split("__", n=2, expand=True)
+  
+      while split_cols.shape[1] < 3:
+          split_cols[split_cols.shape[1]] = ""
+  
+      split_cols = split_cols.iloc[:, :3]
+      split_cols.columns = new_cols
+  
+      df = df.drop(columns=["qseqid_EXON_NAME"])
+      df = pd.concat([split_cols, df], axis=1)
+  
+      df.to_csv(outfile, sep="\t", index=False, float_format="%.3f")
+  
+      print(f"{species}: {len(df)} rows -> {outfile}")
+  
+  print("DONE")
+
+.. code-block:: bash
+
+  python3 filtro2_split_exon_name_2026.py
