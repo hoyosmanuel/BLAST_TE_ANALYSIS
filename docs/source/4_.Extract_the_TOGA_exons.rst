@@ -1,0 +1,1196 @@
+.. code-block:: bash
+
+  nano extract_toga_exons.py
+
+.. code-block:: bash
+
+  #!/usr/bin/env python3
+  
+  """
+  Extrae cada exón de modelos TOGA seleccionados como un registro FASTA separado.
+  
+  Entrada:
+      positivos_GEN.csv
+  
+  La columna GEN debe tener este formato:
+      ENST00000301318.8#ZFP28#104
+  
+  Los archivos TOGA deben estar en formato BED12.
+  
+  Salida:
+      TOGA_exon_fastas/
+      ├── all_species_TOGA_exons.fa
+      ├── extraction_summary.tsv
+      ├── errors.tsv
+      └── species/
+          ├── Rousettus_aegyptiacus/
+          │   └── TOGA_exons.fa
+          └── ...
+  
+  Cada exón se escribe en orientación biológica 5' -> 3'.
+  
+  Ejemplo de encabezado:
+      >ZFP28|ENST00000301318.8|TOGA_104|EXON_1|exon_span|strand=-|rAeg|
+  """
+  
+  from __future__ import annotations
+  
+  import argparse
+  import csv
+  import sys
+  from collections import defaultdict
+  from dataclasses import dataclass
+  from pathlib import Path
+  from typing import TextIO
+  
+  import pysam
+  
+  
+  # ============================================================
+  # Configuración de especies
+  # ============================================================
+  
+  SPECIES_CODES = {
+      "Eonycteris_spelaea": "eSpe",
+      "Miniopterus_schreibersii": "mSch",
+      "Molossus_molossus": "mMol",
+      "Myotis_daubentonii": "mDau",
+      "Myotis_myotis": "mMyo",
+      "Myotis_mystacinus": "mMys",
+      "Phyllostomus_discolor": "pDis",
+      "Pipistrellus_kuhlii": "pKuh",
+      "Pipistrellus_pygmaeus": "pPyg",
+      "Plecotus_auritus": "pAur",
+      "Rhinolophus_ferrumequinum": "rFer",
+      "Rhinolophus_hipposideros": "rHip",
+      "Rhinolophus_sinicus": "rSin",
+      "Rousettus_aegyptiacus": "rAeg",
+      "Vespertilio_murinus": "vMur",
+  }
+  
+  
+  TOGA_BEDS = {
+      "Eonycteris_spelaea":
+          "mEonSpe1.2.hap1.TOGA.bed",
+  
+      "Miniopterus_schreibersii":
+          "mMinSch1.1.hap1.TOGA.bed",
+  
+      "Molossus_molossus":
+          "mMolMol1.2.pri.TOGA.bed",
+  
+      "Myotis_daubentonii":
+          "mMyoDau2.1.pri.TOGA.bed",
+  
+      "Myotis_myotis":
+          "mMyoMyo1.6.pri.TOGA.bed",
+  
+      "Myotis_mystacinus":
+          "mMyoMys1.1.hap1.TOGA.bed",
+  
+      "Phyllostomus_discolor":
+          "mPhyDis1.3.pri.TOGA.bed",
+  
+      "Pipistrellus_kuhlii":
+          "mPipKuh1.2.pri.TOGA.bed",
+  
+      # No apareció un BED de P. pygmaeus en el listado mostrado.
+      # "Pipistrellus_pygmaeus":
+      #     "NOMBRE_DEL_ARCHIVO.TOGA.bed",
+  
+      "Plecotus_auritus":
+          "mPleAur1.1.pri.TOGA.bed",
+  
+      "Rhinolophus_ferrumequinum":
+          "mRhiFer1.5.pri.TOGA.bed",
+  
+      "Rhinolophus_hipposideros":
+          "mRhiHip1.1.hap1.TOGA.bed",
+  
+      "Rhinolophus_sinicus":
+          "mRhiSin3.1.pri.TOGA.bed",
+  
+      "Rousettus_aegyptiacus":
+          "mRouAeg1.4.pri.TOGA.bed",
+  
+      "Vespertilio_murinus":
+          "mVesMur1.1.pri.TOGA.bed",
+  }
+  
+  
+  # ============================================================
+  # Clases
+  # ============================================================
+  
+  @dataclass(frozen=True)
+  class Target:
+      species: str
+      full_id: str
+      transcript_id: str
+      gene: str
+      toga_id: str
+  
+  
+  @dataclass(frozen=True)
+  class Exon:
+      chrom: str
+      start: int
+      end: int
+  
+  
+  @dataclass(frozen=True)
+  class BedRecord:
+      chrom: str
+      start: int
+      end: int
+      name: str
+      strand: str
+      block_count: int
+      block_sizes: tuple[int, ...]
+      block_starts: tuple[int, ...]
+  
+  
+  # ============================================================
+  # Argumentos
+  # ============================================================
+  
+  def parse_args() -> argparse.Namespace:
+      parser = argparse.ArgumentParser(
+          description=(
+              "Extrae cada exón de modelos TOGA BED12 como "
+              "un registro FASTA independiente."
+          )
+      )
+  
+      parser.add_argument(
+          "--input",
+          type=Path,
+          default=Path("positivos_GEN.csv"),
+          help="CSV de entrada. Default: positivos_GEN.csv",
+      )
+  
+      parser.add_argument(
+          "--genomes",
+          type=Path,
+          default=Path("genomes.tsv"),
+          help="Tabla especie -> FASTA. Default: genomes.tsv",
+      )
+  
+      parser.add_argument(
+          "--annotations",
+          type=Path,
+          default=Path(
+              "/lustre/scratch/mhoyosro/project3/ANNOTATIONS"
+          ),
+          help="Directorio que contiene los BED de TOGA.",
+      )
+  
+      parser.add_argument(
+          "--output",
+          type=Path,
+          default=Path("TOGA_exon_fastas"),
+          help="Directorio de salida. Default: TOGA_exon_fastas",
+      )
+  
+      parser.add_argument(
+          "--line-width",
+          type=int,
+          default=80,
+          help="Número de bases por línea FASTA. Default: 80",
+      )
+  
+      return parser.parse_args()
+  
+  
+  # ============================================================
+  # Funciones generales
+  # ============================================================
+  
+  def clean_field(value: str) -> str:
+      return value.strip().strip('"').strip("'")
+  
+  
+  def reverse_complement(sequence: str) -> str:
+      translation = str.maketrans(
+          "ACGTRYMKBDHVNacgtrymkbdhvn",
+          "TGCAYRKMVHDBNtgcayrkmvhdbn",
+      )
+      return sequence.translate(translation)[::-1]
+  
+  
+  def write_wrapped_sequence(
+      handle: TextIO,
+      sequence: str,
+      width: int,
+  ) -> None:
+      for i in range(0, len(sequence), width):
+          handle.write(sequence[i:i + width] + "\n")
+  
+  
+  def ensure_fasta_index(fasta_path: Path) -> None:
+      fai_path = Path(str(fasta_path) + ".fai")
+  
+      if fai_path.exists():
+          return
+  
+      print(
+          f"  Creando índice FASTA: {fai_path}",
+          file=sys.stderr,
+      )
+  
+      try:
+          pysam.faidx(str(fasta_path))
+      except Exception as exc:
+          raise RuntimeError(
+              f"No fue posible crear el índice de {fasta_path}: {exc}"
+          ) from exc
+  
+  
+  # ============================================================
+  # Lectura de positivos_GEN.csv
+  # ============================================================
+  
+  def parse_gen_field(
+      species: str,
+      gen_value: str,
+  ) -> Target:
+      parts = [
+          clean_field(part)
+          for part in gen_value.split("#")
+      ]
+  
+      if len(parts) != 3:
+          raise ValueError(
+              "GEN debe tener el formato "
+              "ENST...#GENE#TOGA_ID: "
+              f"{gen_value}"
+          )
+  
+      transcript_id, gene, toga_id = parts
+  
+      if not transcript_id or not gene or not toga_id:
+          raise ValueError(
+              f"GEN contiene campos vacíos: {gen_value}"
+          )
+  
+      return Target(
+          species=species,
+          full_id=gen_value,
+          transcript_id=transcript_id,
+          gene=gene,
+          toga_id=toga_id,
+      )
+  
+  
+  def load_targets(
+      csv_path: Path,
+  ) -> tuple[
+      dict[str, list[Target]],
+      list[dict[str, str]],
+      int,
+  ]:
+      targets_by_species: dict[str, list[Target]] = defaultdict(list)
+      errors: list[dict[str, str]] = []
+      seen: set[tuple[str, str]] = set()
+      input_rows = 0
+  
+      with csv_path.open(
+          "r",
+          encoding="utf-8-sig",
+          newline="",
+      ) as handle:
+          reader = csv.DictReader(handle)
+  
+          required = {"species", "GEN"}
+          available = set(reader.fieldnames or [])
+  
+          missing = required - available
+  
+          if missing:
+              raise RuntimeError(
+                  "Faltan columnas obligatorias en el CSV: "
+                  + ", ".join(sorted(missing))
+              )
+  
+          for row_number, row in enumerate(reader, start=2):
+              input_rows += 1
+  
+              species = clean_field(
+                  row.get("species", "")
+              )
+  
+              gen_value = clean_field(
+                  row.get("GEN", "")
+              )
+  
+              if not species:
+                  errors.append({
+                      "species": "",
+                      "GEN": gen_value,
+                      "stage": "input",
+                      "error": (
+                          f"Fila {row_number}: species vacío"
+                      ),
+                  })
+                  continue
+  
+              if not gen_value:
+                  errors.append({
+                      "species": species,
+                      "GEN": "",
+                      "stage": "input",
+                      "error": (
+                          f"Fila {row_number}: GEN vacío"
+                      ),
+                  })
+                  continue
+  
+              if gen_value.upper() == "NO ANNOTATION":
+                  errors.append({
+                      "species": species,
+                      "GEN": gen_value,
+                      "stage": "input",
+                      "error": (
+                          "Registro ignorado: NO ANNOTATION"
+                      ),
+                  })
+                  continue
+  
+              key = (species, gen_value)
+  
+              if key in seen:
+                  continue
+  
+              seen.add(key)
+  
+              try:
+                  target = parse_gen_field(
+                      species,
+                      gen_value,
+                  )
+              except ValueError as exc:
+                  errors.append({
+                      "species": species,
+                      "GEN": gen_value,
+                      "stage": "parse_GEN",
+                      "error": str(exc),
+                  })
+                  continue
+  
+              targets_by_species[species].append(target)
+  
+      for species in targets_by_species:
+          targets_by_species[species].sort(
+              key=lambda target: (
+                  target.gene,
+                  target.transcript_id,
+                  target.toga_id,
+              )
+          )
+  
+      return targets_by_species, errors, input_rows
+  
+  
+  # ============================================================
+  # Lectura de genomes.tsv
+  # ============================================================
+  
+  def looks_like_fasta(value: str) -> bool:
+      lower = value.lower()
+  
+      return lower.endswith((
+          ".fa",
+          ".fasta",
+          ".fna",
+          ".fa.gz",
+          ".fasta.gz",
+          ".fna.gz",
+      ))
+  
+  
+  def load_genomes_table(
+      tsv_path: Path,
+  ) -> dict[str, Path]:
+      rows: list[list[str]] = []
+  
+      with tsv_path.open(
+          "r",
+          encoding="utf-8-sig",
+      ) as handle:
+          for raw_line in handle:
+              line = raw_line.strip()
+  
+              if not line or line.startswith("#"):
+                  continue
+  
+              fields = [
+                  clean_field(field)
+                  for field in line.split("\t")
+              ]
+  
+              if len(fields) < 2:
+                  fields = [
+                      clean_field(field)
+                      for field in line.split(",")
+                  ]
+  
+              if len(fields) < 2:
+                  raise RuntimeError(
+                      f"Línea inválida en {tsv_path}: "
+                      f"{raw_line.rstrip()}"
+                  )
+  
+              rows.append(fields)
+  
+      if not rows:
+          raise RuntimeError(
+              f"El archivo {tsv_path} está vacío"
+          )
+  
+      first_left = rows[0][0].lower()
+      first_right = rows[0][1].lower()
+  
+      has_header = (
+          first_left in {"species", "especie"}
+          or first_right in {
+              "fasta",
+              "genome",
+              "genome_fasta",
+              "reference",
+              "reference_fasta",
+              "path",
+          }
+      )
+  
+      data_rows = rows[1:] if has_header else rows
+  
+      genomes: dict[str, Path] = {}
+  
+      for fields in data_rows:
+          species = fields[0]
+          fasta_value = fields[1]
+  
+          if not looks_like_fasta(fasta_value):
+              for candidate in fields[1:]:
+                  if looks_like_fasta(candidate):
+                      fasta_value = candidate
+                      break
+  
+          genomes[species] = Path(
+              fasta_value
+          ).expanduser()
+  
+      return genomes
+  
+  
+  # ============================================================
+  # Lectura de BED12
+  # ============================================================
+  
+  def parse_integer_list(
+      value: str,
+      expected_count: int,
+      field_name: str,
+      bed_path: Path,
+      line_number: int,
+  ) -> tuple[int, ...]:
+      values = [
+          item
+          for item in value.rstrip(",").split(",")
+          if item != ""
+      ]
+  
+      try:
+          parsed = tuple(int(item) for item in values)
+      except ValueError as exc:
+          raise RuntimeError(
+              f"{field_name} inválido en {bed_path}, "
+              f"línea {line_number}: {value}"
+          ) from exc
+  
+      if len(parsed) != expected_count:
+          raise RuntimeError(
+              f"{field_name} contiene {len(parsed)} valores, "
+              f"pero blockCount={expected_count}, "
+              f"en {bed_path}, línea {line_number}"
+          )
+  
+      return parsed
+  
+  
+  def load_needed_bed_records(
+      bed_path: Path,
+      needed_names: set[str],
+  ) -> dict[str, list[BedRecord]]:
+      found: dict[str, list[BedRecord]] = defaultdict(list)
+  
+      with bed_path.open(
+          "r",
+          encoding="utf-8",
+      ) as handle:
+          for line_number, raw_line in enumerate(
+              handle,
+              start=1,
+          ):
+              if not raw_line.strip():
+                  continue
+  
+              if raw_line.startswith((
+                  "#",
+                  "track",
+                  "browser",
+              )):
+                  continue
+  
+              fields = raw_line.rstrip("\n").split("\t")
+  
+              if len(fields) < 12:
+                  continue
+  
+              name = fields[3]
+  
+              if name not in needed_names:
+                  continue
+  
+              try:
+                  chrom_start = int(fields[1])
+                  chrom_end = int(fields[2])
+                  block_count = int(fields[9])
+              except ValueError as exc:
+                  raise RuntimeError(
+                      f"Campo numérico inválido en "
+                      f"{bed_path}, línea {line_number}"
+                  ) from exc
+  
+              strand = fields[5]
+  
+              if strand not in {"+", "-"}:
+                  raise RuntimeError(
+                      f"Strand inválido '{strand}' en "
+                      f"{bed_path}, línea {line_number}"
+                  )
+  
+              block_sizes = parse_integer_list(
+                  value=fields[10],
+                  expected_count=block_count,
+                  field_name="blockSizes",
+                  bed_path=bed_path,
+                  line_number=line_number,
+              )
+  
+              block_starts = parse_integer_list(
+                  value=fields[11],
+                  expected_count=block_count,
+                  field_name="blockStarts",
+                  bed_path=bed_path,
+                  line_number=line_number,
+              )
+  
+              found[name].append(
+                  BedRecord(
+                      chrom=fields[0],
+                      start=chrom_start,
+                      end=chrom_end,
+                      name=name,
+                      strand=strand,
+                      block_count=block_count,
+                      block_sizes=block_sizes,
+                      block_starts=block_starts,
+                  )
+              )
+  
+      return found
+  
+  
+  def get_exons_in_transcript_order(
+      record: BedRecord,
+  ) -> list[Exon]:
+      """
+      BED12 guarda los bloques en orden genómico ascendente.
+  
+      Para strand "+":
+          EXON_1 = bloque con coordenada más baja.
+  
+      Para strand "-":
+          EXON_1 = bloque con coordenada más alta.
+      """
+  
+      exons = []
+  
+      for block_size, relative_start in zip(
+          record.block_sizes,
+          record.block_starts,
+      ):
+          exon_start = record.start + relative_start
+          exon_end = exon_start + block_size
+  
+          exons.append(
+              Exon(
+                  chrom=record.chrom,
+                  start=exon_start,
+                  end=exon_end,
+              )
+          )
+  
+      if record.strand == "-":
+          exons.reverse()
+  
+      return exons
+  
+  
+  # ============================================================
+  # Encabezados y reportes
+  # ============================================================
+  
+  def make_exon_header(
+      target: Target,
+      exon_number: int,
+      strand: str,
+      species_code: str,
+  ) -> str:
+      return (
+          f">{target.gene}"
+          f"|{target.transcript_id}"
+          f"|TOGA_{target.toga_id}"
+          f"|EXON_{exon_number}"
+          f"|exon_span"
+          f"|strand={strand}"
+          f"|{species_code}|"
+      )
+  
+  
+  def write_errors(
+      errors_path: Path,
+      errors: list[dict[str, str]],
+  ) -> None:
+      fieldnames = [
+          "species",
+          "GEN",
+          "stage",
+          "error",
+      ]
+  
+      with errors_path.open(
+          "w",
+          encoding="utf-8",
+          newline="",
+      ) as handle:
+          writer = csv.DictWriter(
+              handle,
+              fieldnames=fieldnames,
+              delimiter="\t",
+          )
+  
+          writer.writeheader()
+          writer.writerows(errors)
+  
+  
+  def write_summary(
+      summary_path: Path,
+      rows: list[dict[str, object]],
+  ) -> None:
+      fieldnames = [
+          "species",
+          "species_code",
+          "GEN",
+          "gene",
+          "transcript_id",
+          "toga_id",
+          "exon_number",
+          "exon_count",
+          "chrom",
+          "genomic_start_0based",
+          "genomic_end",
+          "exon_length_bp",
+          "strand",
+          "bed_file",
+          "genome_fasta",
+          "status",
+      ]
+  
+      with summary_path.open(
+          "w",
+          encoding="utf-8",
+          newline="",
+      ) as handle:
+          writer = csv.DictWriter(
+              handle,
+              fieldnames=fieldnames,
+              delimiter="\t",
+          )
+  
+          writer.writeheader()
+          writer.writerows(rows)
+  
+  
+  # ============================================================
+  # Programa principal
+  # ============================================================
+  
+  def main() -> None:
+      args = parse_args()
+  
+      input_csv = args.input.resolve()
+      genomes_tsv = args.genomes.resolve()
+      annotations_dir = args.annotations.resolve()
+      output_dir = args.output.resolve()
+  
+      if not input_csv.exists():
+          raise FileNotFoundError(
+              f"No existe el CSV: {input_csv}"
+          )
+  
+      if not genomes_tsv.exists():
+          raise FileNotFoundError(
+              f"No existe genomes.tsv: {genomes_tsv}"
+          )
+  
+      if not annotations_dir.is_dir():
+          raise NotADirectoryError(
+              "No existe el directorio de anotaciones: "
+              f"{annotations_dir}"
+          )
+  
+      if args.line_width <= 0:
+          raise ValueError(
+              "--line-width debe ser mayor que cero"
+          )
+  
+      species_output_root = output_dir / "species"
+      species_output_root.mkdir(
+          parents=True,
+          exist_ok=True,
+      )
+  
+      errors_path = output_dir / "errors.tsv"
+      summary_path = output_dir / "extraction_summary.tsv"
+  
+      combined_fasta_path = (
+          output_dir / "all_species_TOGA_exons.fa"
+      )
+  
+      targets_by_species, errors, input_rows = (
+          load_targets(input_csv)
+      )
+  
+      genome_paths = load_genomes_table(
+          genomes_tsv
+      )
+  
+      unique_targets = sum(
+          len(targets)
+          for targets in targets_by_species.values()
+      )
+  
+      print()
+      print("Extracción de exones TOGA")
+      print("-------------------------")
+      print(f"CSV:                {input_csv}")
+      print(f"Genomas:            {genomes_tsv}")
+      print(f"Anotaciones:        {annotations_dir}")
+      print(f"Filas del CSV:      {input_rows}")
+      print(f"Modelos únicos:     {unique_targets}")
+      print(f"Especies:           {len(targets_by_species)}")
+      print()
+  
+      generated_models = 0
+      generated_exons = 0
+      summary_rows: list[dict[str, object]] = []
+  
+      with combined_fasta_path.open(
+          "w",
+          encoding="utf-8",
+      ) as combined_handle:
+  
+          for species in sorted(targets_by_species):
+              targets = targets_by_species[species]
+  
+              print(
+                  f"[{species}] "
+                  f"{len(targets)} modelo(s)"
+              )
+  
+              species_code = SPECIES_CODES.get(species)
+  
+              if species_code is None:
+                  message = (
+                      "Especie ausente en SPECIES_CODES"
+                  )
+  
+                  for target in targets:
+                      errors.append({
+                          "species": species,
+                          "GEN": target.full_id,
+                          "stage": "species_code",
+                          "error": message,
+                      })
+  
+                  print(f"  ERROR: {message}")
+                  continue
+  
+              bed_filename = TOGA_BEDS.get(species)
+  
+              if bed_filename is None:
+                  message = (
+                      "No hay BED TOGA configurado "
+                      "para esta especie"
+                  )
+  
+                  for target in targets:
+                      errors.append({
+                          "species": species,
+                          "GEN": target.full_id,
+                          "stage": "bed_mapping",
+                          "error": message,
+                      })
+  
+                  print(f"  ERROR: {message}")
+                  continue
+  
+              bed_path = annotations_dir / bed_filename
+  
+              if not bed_path.exists():
+                  message = (
+                      f"No existe el BED: {bed_path}"
+                  )
+  
+                  for target in targets:
+                      errors.append({
+                          "species": species,
+                          "GEN": target.full_id,
+                          "stage": "bed_file",
+                          "error": message,
+                      })
+  
+                  print(f"  ERROR: {message}")
+                  continue
+  
+              genome_path = genome_paths.get(species)
+  
+              if genome_path is None:
+                  message = (
+                      f"{species} no aparece en "
+                      f"{genomes_tsv.name}"
+                  )
+  
+                  for target in targets:
+                      errors.append({
+                          "species": species,
+                          "GEN": target.full_id,
+                          "stage": "genome_mapping",
+                          "error": message,
+                      })
+  
+                  print(f"  ERROR: {message}")
+                  continue
+  
+              genome_path = genome_path.resolve()
+  
+              if not genome_path.exists():
+                  message = (
+                      f"No existe el FASTA: {genome_path}"
+                  )
+  
+                  for target in targets:
+                      errors.append({
+                          "species": species,
+                          "GEN": target.full_id,
+                          "stage": "genome_file",
+                          "error": message,
+                      })
+  
+                  print(f"  ERROR: {message}")
+                  continue
+  
+              needed_names = {
+                  target.full_id
+                  for target in targets
+              }
+  
+              bed_records = load_needed_bed_records(
+                  bed_path=bed_path,
+                  needed_names=needed_names,
+              )
+  
+              ensure_fasta_index(genome_path)
+  
+              species_dir = (
+                  species_output_root / species
+              )
+  
+              species_dir.mkdir(
+                  parents=True,
+                  exist_ok=True,
+              )
+  
+              species_fasta_path = (
+                  species_dir / "TOGA_exons.fa"
+              )
+  
+              species_models = 0
+              species_exons = 0
+  
+              with pysam.FastaFile(
+                  str(genome_path)
+              ) as fasta, species_fasta_path.open(
+                  "w",
+                  encoding="utf-8",
+              ) as species_handle:
+  
+                  fasta_references = set(
+                      fasta.references
+                  )
+  
+                  for target in targets:
+                      matches = bed_records.get(
+                          target.full_id,
+                          [],
+                      )
+  
+                      if not matches:
+                          errors.append({
+                              "species": species,
+                              "GEN": target.full_id,
+                              "stage": "BED_search",
+                              "error": (
+                                  "Identificador no encontrado "
+                                  "exactamente en la columna 4 "
+                                  "del BED"
+                              ),
+                          })
+                          continue
+  
+                      if len(matches) > 1:
+                          positions = "; ".join(
+                              f"{record.chrom}:"
+                              f"{record.start}-"
+                              f"{record.end}:"
+                              f"{record.strand}"
+                              for record in matches
+                          )
+  
+                          errors.append({
+                              "species": species,
+                              "GEN": target.full_id,
+                              "stage": "BED_search",
+                              "error": (
+                                  f"Se encontraron "
+                                  f"{len(matches)} registros: "
+                                  f"{positions}"
+                              ),
+                          })
+                          continue
+  
+                      record = matches[0]
+  
+                      if record.chrom not in fasta_references:
+                          errors.append({
+                              "species": species,
+                              "GEN": target.full_id,
+                              "stage": "FASTA_contig",
+                              "error": (
+                                  f"El contig {record.chrom} "
+                                  f"no existe en "
+                                  f"{genome_path.name}"
+                              ),
+                          })
+                          continue
+  
+                      exons = get_exons_in_transcript_order(
+                          record
+                      )
+  
+                      model_sequences: list[
+                          tuple[int, Exon, str]
+                      ] = []
+  
+                      model_failed = False
+  
+                      for exon_number, exon in enumerate(
+                          exons,
+                          start=1,
+                      ):
+                          if (
+                              exon.start < 0
+                              or exon.end <= exon.start
+                          ):
+                              errors.append({
+                                  "species": species,
+                                  "GEN": target.full_id,
+                                  "stage": "exon_coordinates",
+                                  "error": (
+                                      f"EXON_{exon_number}: "
+                                      f"intervalo inválido "
+                                      f"{exon.chrom}:"
+                                      f"{exon.start}-"
+                                      f"{exon.end}"
+                                  ),
+                              })
+                              model_failed = True
+                              break
+  
+                          try:
+                              sequence = fasta.fetch(
+                                  exon.chrom,
+                                  exon.start,
+                                  exon.end,
+                              ).upper()
+                          except Exception as exc:
+                              errors.append({
+                                  "species": species,
+                                  "GEN": target.full_id,
+                                  "stage": "FASTA_fetch",
+                                  "error": (
+                                      f"EXON_{exon_number}: "
+                                      f"{exc}"
+                                  ),
+                              })
+                              model_failed = True
+                              break
+  
+                          expected_length = (
+                              exon.end - exon.start
+                          )
+  
+                          if len(sequence) != expected_length:
+                              errors.append({
+                                  "species": species,
+                                  "GEN": target.full_id,
+                                  "stage": "length_check",
+                                  "error": (
+                                      f"EXON_{exon_number}: "
+                                      f"longitud extraída "
+                                      f"{len(sequence)} != "
+                                      f"{expected_length}"
+                                  ),
+                              })
+                              model_failed = True
+                              break
+  
+                          if record.strand == "-":
+                              sequence = reverse_complement(
+                                  sequence
+                              )
+  
+                          model_sequences.append(
+                              (
+                                  exon_number,
+                                  exon,
+                                  sequence,
+                              )
+                          )
+  
+                      if model_failed:
+                          continue
+  
+                      for (
+                          exon_number,
+                          exon,
+                          sequence,
+                      ) in model_sequences:
+  
+                          header = make_exon_header(
+                              target=target,
+                              exon_number=exon_number,
+                              strand=record.strand,
+                              species_code=species_code,
+                          )
+  
+                          for output_handle in (
+                              species_handle,
+                              combined_handle,
+                          ):
+                              output_handle.write(
+                                  header + "\n"
+                              )
+  
+                              write_wrapped_sequence(
+                                  handle=output_handle,
+                                  sequence=sequence,
+                                  width=args.line_width,
+                              )
+  
+                          summary_rows.append({
+                              "species": species,
+                              "species_code": species_code,
+                              "GEN": target.full_id,
+                              "gene": target.gene,
+                              "transcript_id": (
+                                  target.transcript_id
+                              ),
+                              "toga_id": target.toga_id,
+                              "exon_number": exon_number,
+                              "exon_count": (
+                                  record.block_count
+                              ),
+                              "chrom": exon.chrom,
+                              "genomic_start_0based": (
+                                  exon.start
+                              ),
+                              "genomic_end": exon.end,
+                              "exon_length_bp": (
+                                  len(sequence)
+                              ),
+                              "strand": record.strand,
+                              "bed_file": str(bed_path),
+                              "genome_fasta": (
+                                  str(genome_path)
+                              ),
+                              "status": "generated",
+                          })
+  
+                          species_exons += 1
+                          generated_exons += 1
+  
+                      species_models += 1
+                      generated_models += 1
+  
+              print(
+                  f"  Modelos generados: "
+                  f"{species_models}/{len(targets)}"
+              )
+  
+              print(
+                  f"  Exones generados:  "
+                  f"{species_exons}"
+              )
+  
+              print(
+                  f"  FASTA:             "
+                  f"{species_fasta_path}"
+              )
+  
+              print()
+  
+      write_errors(
+          errors_path=errors_path,
+          errors=errors,
+      )
+  
+      write_summary(
+          summary_path=summary_path,
+          rows=summary_rows,
+      )
+  
+      print("Proceso terminado")
+      print("-----------------")
+      print(f"Filas del CSV:          {input_rows}")
+      print(f"Modelos únicos:         {unique_targets}")
+      print(f"Modelos generados:      {generated_models}")
+      print(f"Exones generados:       {generated_exons}")
+      print(f"Errores/avisos:         {len(errors)}")
+      print(f"FASTA combinado:        {combined_fasta_path}")
+      print(f"Resumen:                {summary_path}")
+      print(f"Errores:                {errors_path}")
+  
+      if generated_exons == 0:
+          print(
+              "\nADVERTENCIA: no se generó "
+              "ningún exón.",
+              file=sys.stderr,
+          )
+          sys.exit(1)
+  
+  
+  if __name__ == "__main__":
+      main()
