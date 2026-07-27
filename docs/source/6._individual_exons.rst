@@ -1,0 +1,360 @@
+.. code-block:: bash
+
+  cd /lustre/scratch/mhoyosro/project3/SCRIPTS2/HTF_fastas
+
+.. code-block:: bash
+
+  nano split_complete_transcripts_into_exons.py
+
+.. code-block:: bash
+
+  #!/usr/bin/env python3
+  
+  from pathlib import Path
+  import re
+  import sys
+  
+  
+  # =============================================================================
+  # CONFIGURACIÓN
+  # =============================================================================
+  
+  BASE_DIR = Path(
+      "/lustre/scratch/mhoyosro/project3/SCRIPTS2/HTF_fastas/species"
+  )
+  
+  INPUT_FASTA_NAME = "complete_transcripts.fa"
+  OUTPUT_FASTA_NAME = "individual_exons.fa"
+  
+  LINE_WIDTH = 80
+  
+  
+  SPECIES_CODES = {
+      "Eonycteris_spelaea": "eSpe",
+      "Miniopterus_schreibersii": "mSch",
+      "Molossus_molossus": "mMol",
+      "Myotis_daubentonii": "mDau",
+      "Myotis_myotis": "mMyo",
+      "Myotis_mystacinus": "mMys",
+      "Phyllostomus_discolor": "pDis",
+      "Pipistrellus_kuhlii": "pKuh",
+      "Pipistrellus_pygmaeus": "pPyg",
+      "Plecotus_auritus": "pAur",
+      "Rhinolophus_ferrumequinum": "rFer",
+      "Rhinolophus_hipposideros": "rHip",
+      "Rhinolophus_sinicus": "rSin",
+      "Rousettus_aegyptiacus": "rAeg",
+      "Vespertilio_murinus": "vMur",
+  }
+  
+  
+  # =============================================================================
+  # FUNCIONES AUXILIARES
+  # =============================================================================
+  
+  def read_fasta(path):
+      """
+      Lee un FASTA y produce pares:
+          header, sequence
+  
+      El header se devuelve sin el símbolo >.
+      """
+      header = None
+      sequence_parts = []
+  
+      with path.open("r", encoding="utf-8") as handle:
+          for raw_line in handle:
+              line = raw_line.strip()
+  
+              if not line:
+                  continue
+  
+              if line.startswith(">"):
+                  if header is not None:
+                      yield header, "".join(sequence_parts)
+  
+                  header = line[1:]
+                  sequence_parts = []
+              else:
+                  if header is None:
+                      raise ValueError(
+                          f"Se encontró secuencia antes del primer encabezado "
+                          f"en {path}"
+                      )
+  
+                  sequence_parts.append(line)
+  
+      if header is not None:
+          yield header, "".join(sequence_parts)
+  
+  
+  def wrap_sequence(sequence, width=80):
+      """
+      Divide una secuencia en líneas de longitud fija.
+      """
+      return "\n".join(
+          sequence[i:i + width]
+          for i in range(0, len(sequence), width)
+      )
+  
+  
+  def parse_header(header):
+      """
+      Interpreta encabezados como:
+  
+      FAU|SRR6958995|STRG.3514.1|4_exons|
+      lengths=66,113,145,1847|strand=+
+  
+      Devuelve:
+          gene
+          sample
+          transcript
+          declared_exon_count
+          exon_lengths
+          strand
+      """
+      fields = header.split("|")
+  
+      if len(fields) < 6:
+          raise ValueError(
+              f"Encabezado con menos de 6 campos:\n>{header}"
+          )
+  
+      gene = fields[0]
+      sample = fields[1]
+      transcript = fields[2]
+  
+      exon_count_match = re.fullmatch(r"(\d+)_exons", fields[3])
+  
+      if exon_count_match is None:
+          raise ValueError(
+              f"No se reconoció el número de exones en:\n>{header}"
+          )
+  
+      declared_exon_count = int(exon_count_match.group(1))
+  
+      if not fields[4].startswith("lengths="):
+          raise ValueError(
+              f"No se encontró el campo lengths= en:\n>{header}"
+          )
+  
+      lengths_text = fields[4].split("=", 1)[1]
+  
+      try:
+          exon_lengths = [
+              int(value)
+              for value in lengths_text.split(",")
+              if value != ""
+          ]
+      except ValueError as exc:
+          raise ValueError(
+              f"Longitudes de exones inválidas en:\n>{header}"
+          ) from exc
+  
+      if not fields[5].startswith("strand="):
+          raise ValueError(
+              f"No se encontró el campo strand= en:\n>{header}"
+          )
+  
+      strand = fields[5].split("=", 1)[1]
+  
+      if strand not in {"+", "-"}:
+          raise ValueError(
+              f"Hebra no reconocida en:\n>{header}"
+          )
+  
+      return {
+          "gene": gene,
+          "sample": sample,
+          "transcript": transcript,
+          "declared_exon_count": declared_exon_count,
+          "exon_lengths": exon_lengths,
+          "strand": strand,
+      }
+  
+  
+  def split_sequence(sequence, exon_lengths):
+      """
+      Divide la secuencia madura usando las longitudes de los exones.
+  
+      La numeración resultante es biológica:
+          exon_1 = exón 5' del transcrito
+          último exon = exón 3' del transcrito
+  
+      Esto es válido tanto para strand + como para strand -, porque los
+      complete_transcripts.fa ya están orientados 5' -> 3'.
+      """
+      expected_length = sum(exon_lengths)
+  
+      if len(sequence) != expected_length:
+          raise ValueError(
+              f"Longitud del transcrito: {len(sequence)}; "
+              f"suma de exones: {expected_length}"
+          )
+  
+      exons = []
+      start = 0
+  
+      for exon_length in exon_lengths:
+          end = start + exon_length
+          exons.append(sequence[start:end])
+          start = end
+  
+      return exons
+  
+  
+  # =============================================================================
+  # PROCESAMIENTO
+  # =============================================================================
+  
+  def process_species(species_name, species_code):
+      species_dir = BASE_DIR / species_name
+      input_fasta = species_dir / INPUT_FASTA_NAME
+      output_fasta = species_dir / OUTPUT_FASTA_NAME
+  
+      if not species_dir.is_dir():
+          print(
+              f"[SKIP] No existe el directorio: {species_dir}",
+              file=sys.stderr,
+          )
+          return {
+              "status": "missing_directory",
+              "transcripts": 0,
+              "exons": 0,
+              "errors": 0,
+          }
+  
+      if not input_fasta.is_file():
+          print(
+              f"[SKIP] No existe: {input_fasta}",
+              file=sys.stderr,
+          )
+          return {
+              "status": "missing_fasta",
+              "transcripts": 0,
+              "exons": 0,
+              "errors": 0,
+          }
+  
+      transcript_count = 0
+      exon_count = 0
+      error_count = 0
+  
+      temporary_output = output_fasta.with_suffix(".fa.tmp")
+  
+      with temporary_output.open("w", encoding="utf-8") as output_handle:
+          for header, sequence in read_fasta(input_fasta):
+              transcript_count += 1
+  
+              try:
+                  metadata = parse_header(header)
+  
+                  declared_count = metadata["declared_exon_count"]
+                  exon_lengths = metadata["exon_lengths"]
+  
+                  if declared_count != len(exon_lengths):
+                      raise ValueError(
+                          f"El encabezado declara {declared_count} exones, "
+                          f"pero contiene {len(exon_lengths)} longitudes"
+                      )
+  
+                  exon_sequences = split_sequence(
+                      sequence=sequence.upper(),
+                      exon_lengths=exon_lengths,
+                  )
+  
+                  for exon_number, exon_sequence in enumerate(
+                      exon_sequences,
+                      start=1,
+                  ):
+                      new_header = (
+                          f"{metadata['gene']}|"
+                          f"{metadata['sample']}|"
+                          f"{metadata['transcript']}|"
+                          f"exon_{exon_number}|"
+                          f"{species_code}|"
+                      )
+  
+                      output_handle.write(f">{new_header}\n")
+                      output_handle.write(
+                          wrap_sequence(
+                              exon_sequence,
+                              width=LINE_WIDTH,
+                          )
+                      )
+                      output_handle.write("\n")
+  
+                      exon_count += 1
+  
+              except Exception as exc:
+                  error_count += 1
+  
+                  print(
+                      f"[ERROR] {species_name} | >{header}\n"
+                      f"        {exc}",
+                      file=sys.stderr,
+                  )
+  
+      if error_count == 0:
+          temporary_output.replace(output_fasta)
+          status = "ok"
+      else:
+          failed_output = output_fasta.with_suffix(".fa.failed")
+          temporary_output.replace(failed_output)
+          status = "errors"
+  
+          print(
+              f"[WARNING] Debido a errores, la salida quedó en:\n"
+              f"          {failed_output}",
+              file=sys.stderr,
+          )
+  
+      return {
+          "status": status,
+          "transcripts": transcript_count,
+          "exons": exon_count,
+          "errors": error_count,
+      }
+  
+  
+  def main():
+      print("Individualización de exones")
+      print("============================")
+      print(f"Directorio base: {BASE_DIR}")
+      print()
+  
+      total_transcripts = 0
+      total_exons = 0
+      total_errors = 0
+  
+      for species_name, species_code in SPECIES_CODES.items():
+          print(f"Procesando: {species_name} ({species_code})")
+  
+          result = process_species(
+              species_name=species_name,
+              species_code=species_code,
+          )
+  
+          total_transcripts += result["transcripts"]
+          total_exons += result["exons"]
+          total_errors += result["errors"]
+  
+          print(
+              f"  Estado:      {result['status']}\n"
+              f"  Transcritos: {result['transcripts']}\n"
+              f"  Exones:      {result['exons']}\n"
+              f"  Errores:     {result['errors']}\n"
+          )
+  
+      print("Proceso terminado")
+      print("-----------------")
+      print(f"Transcritos procesados: {total_transcripts}")
+      print(f"Exones generados:       {total_exons}")
+      print(f"Errores:                 {total_errors}")
+  
+      if total_errors > 0:
+          sys.exit(1)
+  
+  
+  if __name__ == "__main__":
+      main()
