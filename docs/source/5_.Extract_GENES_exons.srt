@@ -1,0 +1,388 @@
+.. code-block:: bash
+
+    nano make_geneious_fastas.py
+
+.. code-block:: bash
+
+  #!/usr/bin/env python3
+  import argparse
+  import gzip
+  import re
+  from collections import defaultdict
+  from pathlib import Path
+  
+  import pandas as pd
+  import pysam
+  
+  
+  def open_gtf(path):
+      """Abre GTF normal o comprimido."""
+      if str(path).endswith(".gz"):
+          return gzip.open(path, "rt")
+      return open(path)
+  
+  
+  def parse_attributes(text):
+      """Convierte los atributos del GTF en un diccionario."""
+      return dict(re.findall(r'(\S+)\s+"([^"]+)"', text))
+  
+  
+  def clean_sample_name(gtf_name):
+      """
+      SRR18652217_MM.gtf -> SRR18652217
+      SRR18652217.gtf    -> SRR18652217
+      """
+      name = Path(gtf_name).name
+  
+      for suffix in [
+          "_MM.gtf.gz",
+          "_MM.gtf",
+          ".gtf.gz",
+          ".gtf",
+      ]:
+          if name.endswith(suffix):
+              return name[:-len(suffix)]
+  
+      return name
+  
+  
+  def get_gene_name(gen_field):
+      """
+      ENST00000265651.8#FBXO3#3193 -> FBXO3
+      """
+      parts = str(gen_field).split("#")
+  
+      if len(parts) >= 2:
+          return parts[1]
+  
+      return str(gen_field)
+  
+  
+  def reverse_complement(sequence):
+      table = str.maketrans(
+          "ACGTRYMKBDHVNacgtrymkbdhvn",
+          "TGCAYRKMVHDBNtgcayrkmvhdbn",
+      )
+      return sequence.translate(table)[::-1]
+  
+  
+  def wrap_fasta(sequence, width=80):
+      return "\n".join(
+          sequence[i:i + width]
+          for i in range(0, len(sequence), width)
+      )
+  
+  
+  def read_selected_exons(gtf_path, transcript_ids):
+      """
+      Lee una sola vez el GTF y conserva únicamente los exones
+      de los transcritos solicitados.
+      """
+      exons = defaultdict(list)
+  
+      with open_gtf(gtf_path) as handle:
+          for line in handle:
+              if line.startswith("#"):
+                  continue
+  
+              fields = line.rstrip().split("\t")
+  
+              if len(fields) != 9 or fields[2] != "exon":
+                  continue
+  
+              attributes = parse_attributes(fields[8])
+              transcript_id = attributes.get("transcript_id")
+  
+              if transcript_id not in transcript_ids:
+                  continue
+  
+              exons[transcript_id].append(
+                  {
+                      "seqname": fields[0],
+                      "start": int(fields[3]),
+                      "end": int(fields[4]),
+                      "strand": fields[6],
+                  }
+              )
+  
+      return exons
+  
+  
+  def order_exons(exons):
+      """
+      Orden biológico 5' -> 3'.
+  
+      Hebra +: coordenadas bajas a altas.
+      Hebra -: coordenadas altas a bajas.
+      """
+      strand = exons[0]["strand"]
+  
+      if strand == "+":
+          return sorted(
+              exons,
+              key=lambda exon: (exon["start"], exon["end"]),
+          )
+  
+      return sorted(
+          exons,
+          key=lambda exon: (exon["start"], exon["end"]),
+          reverse=True,
+      )
+  
+  
+  def extract_exon_sequence(genome, exon):
+      """
+      pysam usa coordenadas 0-based y semiabiertas.
+      El GTF usa coordenadas 1-based e inclusivas.
+      """
+      sequence = genome.fetch(
+          exon["seqname"],
+          exon["start"] - 1,
+          exon["end"],
+      ).upper()
+  
+      if exon["strand"] == "-":
+          sequence = reverse_complement(sequence)
+  
+      return sequence
+  
+  
+  def load_genome_paths(path):
+      table = pd.read_csv(path, sep="\t")
+  
+      required = {"species", "fasta"}
+  
+      if not required.issubset(table.columns):
+          raise ValueError(
+              "genomes.tsv debe contener las columnas: species y fasta"
+          )
+  
+      return dict(zip(table["species"], table["fasta"]))
+  
+  
+  def main():
+      parser = argparse.ArgumentParser(
+          description=(
+              "Genera FASTA de transcritos STRG y exones terminales "
+              "para inspección en Geneious."
+          )
+      )
+  
+      parser.add_argument(
+          "--table",
+          required=True,
+          help="Tabla positivos&GEN.csv",
+      )
+  
+      parser.add_argument(
+          "--genomes",
+          required=True,
+          help="Archivo genomes.tsv",
+      )
+  
+      parser.add_argument(
+          "--gtf-root",
+          required=True,
+          help=(
+              "Directorio raíz que contiene una carpeta por especie "
+              "con los archivos GTF"
+          ),
+      )
+  
+      parser.add_argument(
+          "--output",
+          default="selected_transcript_fastas",
+          help="Directorio de salida",
+      )
+  
+      args = parser.parse_args()
+  
+      table = pd.read_csv(args.table)
+  
+      required_columns = {
+          "species",
+          "gtf_sample",
+          "transcript_id",
+          "GEN",
+      }
+  
+      missing = required_columns - set(table.columns)
+  
+      if missing:
+          raise ValueError(
+              "Faltan columnas en la tabla: "
+              + ", ".join(sorted(missing))
+          )
+  
+      table["gene"] = table["GEN"].apply(get_gene_name)
+      table["sample"] = table["gtf_sample"].apply(clean_sample_name)
+  
+      # Esto hace que Geneious muestre juntos los transcritos
+      # pertenecientes al mismo gen.
+      table = table.sort_values(
+          ["species", "gene", "sample", "transcript_id"]
+      )
+  
+      genome_paths = load_genome_paths(args.genomes)
+  
+      gtf_root = Path(args.gtf_root)
+      output_root = Path(args.output) / "by_species"
+      output_root.mkdir(parents=True, exist_ok=True)
+  
+      errors = []
+      successful = 0
+  
+      for species, species_table in table.groupby(
+          "species",
+          sort=False,
+      ):
+          print(f"\nProcesando: {species}")
+  
+          if species not in genome_paths:
+              print("  ERROR: no aparece en genomes.tsv")
+              continue
+  
+          fasta_path = Path(genome_paths[species])
+  
+          if not fasta_path.exists():
+              print(f"  ERROR: no existe {fasta_path}")
+              continue
+  
+          # Crea automáticamente el índice .fai si falta.
+          if not Path(str(fasta_path) + ".fai").exists():
+              print("  Creando índice FASTA...")
+              pysam.faidx(str(fasta_path))
+  
+          genome = pysam.FastaFile(str(fasta_path))
+  
+          species_output = output_root / species
+          species_output.mkdir(parents=True, exist_ok=True)
+  
+          complete_path = species_output / "complete_transcripts.fa"
+          terminal_path = species_output / "HTF_terminal_exons.fa"
+  
+          with (
+              complete_path.open("w") as complete_out,
+              terminal_path.open("w") as terminal_out,
+          ):
+              # Cada GTF se abre solamente una vez.
+              for gtf_name, gtf_table in species_table.groupby(
+                  "gtf_sample",
+                  sort=False,
+              ):
+                  gtf_path = gtf_root / species / gtf_name
+  
+                  if not gtf_path.exists():
+                      for row in gtf_table.itertuples():
+                          errors.append(
+                              [
+                                  species,
+                                  gtf_name,
+                                  row.transcript_id,
+                                  f"No existe el GTF: {gtf_path}",
+                              ]
+                          )
+                      continue
+  
+                  requested_ids = set(gtf_table["transcript_id"])
+  
+                  exons_by_transcript = read_selected_exons(
+                      gtf_path,
+                      requested_ids,
+                  )
+  
+                  for row in gtf_table.itertuples():
+                      transcript_id = row.transcript_id
+  
+                      try:
+                          exons = exons_by_transcript.get(
+                              transcript_id,
+                              [],
+                          )
+  
+                          if not exons:
+                              raise ValueError(
+                                  "No se encontraron exones en el GTF"
+                              )
+  
+                          ordered_exons = order_exons(exons)
+  
+                          exon_sequences = [
+                              extract_exon_sequence(genome, exon)
+                              for exon in ordered_exons
+                          ]
+  
+                          exon_lengths = [
+                              len(sequence)
+                              for sequence in exon_sequences
+                          ]
+  
+                          transcript_sequence = "".join(exon_sequences)
+                          terminal_exon_sequence = exon_sequences[-1]
+  
+                          strand = ordered_exons[0]["strand"]
+                          lengths_text = ",".join(
+                              map(str, exon_lengths)
+                          )
+  
+                          header = (
+                              f"{row.gene}|"
+                              f"{row.sample}|"
+                              f"{transcript_id}|"
+                              f"{len(ordered_exons)}_exons|"
+                              f"lengths={lengths_text}|"
+                              f"strand={strand}"
+                          )
+  
+                          complete_out.write(
+                              f">{header}\n"
+                              f"{wrap_fasta(transcript_sequence)}\n"
+                          )
+  
+                          terminal_out.write(
+                              f">{header}|HTF_terminal_exon\n"
+                              f"{wrap_fasta(terminal_exon_sequence)}\n"
+                          )
+  
+                          successful += 1
+  
+                      except Exception as error:
+                          errors.append(
+                              [
+                                  species,
+                                  gtf_name,
+                                  transcript_id,
+                                  str(error),
+                              ]
+                          )
+  
+          genome.close()
+  
+      error_path = Path(args.output) / "errors.tsv"
+      error_path.parent.mkdir(parents=True, exist_ok=True)
+  
+      pd.DataFrame(
+          errors,
+          columns=[
+              "species",
+              "gtf_sample",
+              "transcript_id",
+              "error",
+          ],
+      ).to_csv(
+          error_path,
+          sep="\t",
+          index=False,
+      )
+  
+      print("\nProceso terminado")
+      print("-----------------")
+      print(f"Transcritos solicitados: {len(table)}")
+      print(f"Transcritos generados:   {successful}")
+      print(f"Errores:                 {len(errors)}")
+      print(f"Salida:                  {args.output}")
+      print(f"Tabla de errores:        {error_path}")
+  
+  
+  if __name__ == "__main__":
+      main()
